@@ -210,6 +210,45 @@ export const userService = {
     }
   },
 
+  // Get all caregivers for the user's account
+  async getCaregivers(userProfile: UserProfile): Promise<any[]> {
+    if (!userProfile.safeloop_account_id) {
+      throw new Error('User is not associated with a SafeLoop account')
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('safeloop_account_id', userProfile.safeloop_account_id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    return data || []
+  },
+
+  // Get pending invitations for the user's account
+  async getPendingInvitations(userProfile: UserProfile): Promise<any[]> {
+    if (!userProfile.safeloop_account_id) {
+      throw new Error('User is not associated with a SafeLoop account')
+    }
+
+    const { data, error } = await supabase
+      .from('caregiver_invitations')
+      .select('*')
+      .eq('safeloop_account_id', userProfile.safeloop_account_id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    return data || []
+  },
+
   // =============================================
   // WEARER MANAGEMENT
   // =============================================

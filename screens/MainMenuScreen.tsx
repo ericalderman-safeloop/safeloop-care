@@ -59,12 +59,12 @@ export default function MainMenuScreen({ navigation }: MainMenuScreenProps) {
       onPress: () => navigation.navigate('Wearers'),
       icon: '⌚'
     },
-    ...(isAdmin ? [{
-      title: 'Invite Caregiver',
-      description: 'Add team members to your SafeLoop account',
-      onPress: () => navigation.navigate('InviteCaregiver'),
+    {
+      title: 'Caregivers',
+      description: isAdmin ? 'Manage your care team and invitations' : 'View your care team members',
+      onPress: () => navigation.navigate('Caregivers'),
       icon: '👥'
-    }] : []),
+    },
     {
       title: 'Notifications',
       description: 'Manage notification preferences',
