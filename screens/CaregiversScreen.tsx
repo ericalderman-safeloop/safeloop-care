@@ -137,31 +137,36 @@ export default function CaregiversScreen({ navigation }: CaregiversScreenProps) 
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-      }
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Team Caregivers</Text>
-        <Text style={styles.subtitle}>
-          Manage your SafeLoop care team
-        </Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹ Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Caregivers</Text>
       </View>
 
-      {isAdmin && (
-        <TouchableOpacity
-          style={styles.inviteButton}
-          onPress={() => navigation.navigate('InviteCaregiver')}
-        >
-          <Text style={styles.inviteButtonIcon}>✉️</Text>
-          <Text style={styles.inviteButtonText}>Invite New Caregiver</Text>
-        </TouchableOpacity>
-      )}
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
 
-      {/* Active Caregivers Section */}
-      <View style={styles.section}>
+        {isAdmin && (
+          <TouchableOpacity
+            style={styles.inviteButton}
+            onPress={() => navigation.navigate('InviteCaregiver')}
+          >
+            <Text style={styles.inviteButtonIcon}>✉️</Text>
+            <Text style={styles.inviteButtonText}>Invite New Caregiver</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Active Caregivers Section */}
+        <View style={styles.section}>
         <Text style={styles.sectionTitle}>Active Caregivers ({caregivers.length})</Text>
         {caregivers.length === 0 ? (
           <View style={styles.emptyState}>
@@ -203,11 +208,11 @@ export default function CaregiversScreen({ navigation }: CaregiversScreenProps) 
             </View>
           ))
         )}
-      </View>
+        </View>
 
-      {/* Pending Invitations Section */}
-      {isAdmin && (
-        <View style={styles.section}>
+        {/* Pending Invitations Section */}
+        {isAdmin && (
+          <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pending Invitations ({invitations.length})</Text>
           {invitations.length === 0 ? (
             <View style={styles.emptyState}>
@@ -243,16 +248,10 @@ export default function CaregiversScreen({ navigation }: CaregiversScreenProps) 
               )
             })
           )}
-        </View>
-      )}
-
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Text style={styles.backButtonText}>← Back to Menu</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   )
 }
 
@@ -273,27 +272,38 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    padding: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
     paddingTop: 60,
     backgroundColor: '#2196F3',
-    alignItems: 'center',
+  },
+  backButton: {
+    padding: 10,
+    marginRight: 10,
+  },
+  backButtonText: {
+    color: 'white',
+    fontSize: 28,
+    fontWeight: '300',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 8,
+    flex: 1,
   },
-  subtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+  content: {
+    flex: 1,
   },
   inviteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#4CAF50',
-    margin: 20,
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
     padding: 16,
     borderRadius: 8,
     shadowColor: '#000',
@@ -312,8 +322,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   section: {
-    padding: 20,
-    paddingTop: 0,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
   },
   sectionTitle: {
     fontSize: 20,
@@ -456,16 +467,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-  },
-  backButton: {
-    margin: 20,
-    marginTop: 10,
-    padding: 16,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#2196F3',
-    fontSize: 16,
-    fontWeight: '500',
   },
 })
