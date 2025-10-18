@@ -57,17 +57,23 @@ export default function WearerDetailsScreen({ navigation, route }: WearerDetails
     if (!userProfile) return
 
     try {
+      console.log('📊 Loading wearer details for:', wearerId)
+
       const [wearerData, assigned, available] = await Promise.all([
         userService.getWearerById(wearerId),
         userService.getAssignedCaregivers(wearerId),
         userService.getAvailableCaregivers(userProfile, wearerId)
       ])
 
+      console.log('✅ Wearer data loaded:', wearerData?.name)
+      console.log('✅ Assigned caregivers:', assigned.length, assigned)
+      console.log('✅ Available caregivers:', available.length, available)
+
       setWearer(wearerData)
       setAssignedCaregivers(assigned)
       setAvailableCaregivers(available)
     } catch (error) {
-      console.error('Error loading wearer details:', error)
+      console.error('❌ Error loading wearer details:', error)
       Alert.alert('Error', 'Failed to load wearer details. Please try again.')
     } finally {
       setLoading(false)
@@ -95,11 +101,14 @@ export default function WearerDetailsScreen({ navigation, route }: WearerDetails
           text: 'Assign',
           onPress: async () => {
             try {
+              console.log('🔄 Assigning caregiver:', caregiver.id, 'to wearer:', wearerId)
               await userService.assignCaregiverToWearer(caregiver.id, wearerId)
+              console.log('✅ Assignment successful')
               Alert.alert('Success', 'Caregiver assigned successfully')
+              console.log('🔄 Reloading wearer details...')
               await loadWearerDetails()
             } catch (error: any) {
-              console.error('Error assigning caregiver:', error)
+              console.error('❌ Error assigning caregiver:', error)
               Alert.alert('Error', error.message || 'Failed to assign caregiver.')
             }
           }
