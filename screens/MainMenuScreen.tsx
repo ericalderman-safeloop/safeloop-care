@@ -38,6 +38,8 @@ export default function MainMenuScreen({ navigation }: MainMenuScreenProps) {
     )
   }
 
+  const isAdmin = userProfile?.user_type === 'caregiver_admin'
+
   const menuItems = [
     {
       title: 'Dashboard',
@@ -57,6 +59,12 @@ export default function MainMenuScreen({ navigation }: MainMenuScreenProps) {
       onPress: () => navigation.navigate('Wearers'),
       icon: '⌚'
     },
+    ...(isAdmin ? [{
+      title: 'Invite Caregiver',
+      description: 'Add team members to your SafeLoop account',
+      onPress: () => navigation.navigate('InviteCaregiver'),
+      icon: '👥'
+    }] : []),
     {
       title: 'Notifications',
       description: 'Manage notification preferences',

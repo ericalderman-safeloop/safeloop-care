@@ -192,6 +192,24 @@ export const userService = {
     return !!(userProfile.display_name && userProfile.display_name.trim().length > 0)
   },
 
+  // Invite a caregiver to join the account
+  async inviteCaregiver(email: string, safeloopAccountId: string): Promise<void> {
+    const { data, error } = await supabase.functions.invoke('invite-caregiver', {
+      body: {
+        email: email,
+        safeloop_account_id: safeloopAccountId
+      }
+    })
+
+    if (error) {
+      throw error
+    }
+
+    if (!data?.success) {
+      throw new Error(data?.error || 'Failed to send invitation')
+    }
+  },
+
   // =============================================
   // WEARER MANAGEMENT
   // =============================================
