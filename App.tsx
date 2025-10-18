@@ -13,6 +13,7 @@ import SettingsScreen from './screens/SettingsScreen'
 import WearersScreen from './screens/WearersScreen'
 import RegisterWearerScreen from './screens/RegisterWearerScreen'
 import EditWearerScreen from './screens/EditWearerScreen'
+import WearerDetailsScreen from './screens/WearerDetailsScreen'
 import CaregiversScreen from './screens/CaregiversScreen'
 import InviteCaregiverScreen from './screens/InviteCaregiverScreen'
 
@@ -77,6 +78,7 @@ function AppNavigator() {
             <Stack.Screen name="Wearers" component={WearersScreen} />
             <Stack.Screen name="RegisterWearer" component={RegisterWearerScreen} />
             <Stack.Screen name="EditWearer" component={EditWearerScreen} />
+            <Stack.Screen name="WearerDetails" component={WearerDetailsScreen} />
             <Stack.Screen name="Caregivers" component={CaregiversScreen} />
             <Stack.Screen name="InviteCaregiver" component={InviteCaregiverScreen} />
           </>

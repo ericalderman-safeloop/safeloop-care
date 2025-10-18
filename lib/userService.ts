@@ -395,4 +395,104 @@ export const userService = {
     }
   },
 
+  // =============================================
+  // CAREGIVER-WEARER ASSIGNMENT MANAGEMENT
+  // =============================================
+
+  // Get caregivers assigned to a specific wearer
+  async getAssignedCaregivers(wearerId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('caregiver_wearer_assignments')
+      .select(`
+        id,
+        relationship_type,
+        is_primary,
+        is_emergency_contact,
+        caregiver:users!caregiver_user_id (
+          id,
+          email,
+          display_name,
+          phone_number,
+          user_type
+        )
+      `)
+      .eq('wearer_id', wearerId)
+
+    if (error) {
+      throw error
+    }
+
+    // Flatten the structure for easier use
+    return (data || []).map((assignment: any) => ({
+      assignment_id: assignment.id,
+      id: assignment.caregiver.id,
+      email: assignment.caregiver.email,
+      display_name: assignment.caregiver.display_name,
+      phone_number: assignment.caregiver.phone_number,
+      user_type: assignment.caregiver.user_type,
+      relationship_type: assignment.relationship_type,
+      is_primary: assignment.is_primary,
+      is_emergency_contact: assignment.is_emergency_contact
+    }))
+  },
+
+  // Get caregivers available to assign (not yet assigned to this wearer)
+  async getAvailableCaregivers(userProfile: UserProfile, wearerId: string): Promise<any[]> {
+    if (!userProfile.safeloop_account_id) {
+      throw new Error('User is not associated with a SafeLoop account')
+    }
+
+    // Get all caregivers for the account
+    const { data: allCaregivers, error: caregiversError } = await supabase
+      .from('users')
+      .select('id, email, display_name, phone_number, user_type')
+      .eq('safeloop_account_id', userProfile.safeloop_account_id)
+
+    if (caregiversError) {
+      throw caregiversError
+    }
+
+    // Get already assigned caregivers
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from('caregiver_wearer_assignments')
+      .select('caregiver_user_id')
+      .eq('wearer_id', wearerId)
+
+    if (assignmentsError) {
+      throw assignmentsError
+    }
+
+    const assignedIds = new Set((assignments || []).map((a: any) => a.caregiver_user_id))
+
+    // Filter out already assigned caregivers
+    return (allCaregivers || []).filter((c: any) => !assignedIds.has(c.id))
+  },
+
+  // Assign a caregiver to a wearer
+  async assignCaregiverToWearer(caregiverUserId: string, wearerId: string): Promise<void> {
+    const { error } = await supabase.rpc('assign_caregiver_to_wearer', {
+      p_caregiver_user_id: caregiverUserId,
+      p_wearer_id: wearerId,
+      p_relationship_type: 'family',
+      p_is_primary: false,
+      p_is_emergency_contact: false
+    })
+
+    if (error) {
+      throw error
+    }
+  },
+
+  // Remove a caregiver from a wearer
+  async removeCaregiverFromWearer(assignmentId: string): Promise<void> {
+    const { error } = await supabase
+      .from('caregiver_wearer_assignments')
+      .delete()
+      .eq('id', assignmentId)
+
+    if (error) {
+      throw error
+    }
+  },
+
 }

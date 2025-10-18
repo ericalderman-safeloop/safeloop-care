@@ -238,7 +238,12 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
           wearers.map((wearer) => {
             const deviceStatus = getDeviceStatus(wearer.device)
             return (
-              <View key={wearer.id} style={styles.wearerCard}>
+              <TouchableOpacity
+                key={wearer.id}
+                style={styles.wearerCard}
+                onPress={() => navigation.navigate('WearerDetails', { wearerId: wearer.id })}
+                activeOpacity={0.7}
+              >
                 <View style={styles.wearerInfo}>
                   <Text style={styles.wearerName}>{wearer.name}</Text>
                   {wearer.date_of_birth && (
@@ -263,23 +268,29 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
                     )}
                   </View>
                 </View>
-                
+
                 <View style={styles.actionButtons}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.editButton}
-                    onPress={() => navigation.navigate('EditWearer', { wearerId: wearer.id })}
+                    onPress={(e) => {
+                      e.stopPropagation()
+                      navigation.navigate('EditWearer', { wearerId: wearer.id })
+                    }}
                   >
                     <Text style={styles.editButtonText}>Edit</Text>
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={styles.deleteButton}
-                    onPress={() => handleDeleteWearer(wearer)}
+                    onPress={(e) => {
+                      e.stopPropagation()
+                      handleDeleteWearer(wearer)
+                    }}
                   >
                     <Text style={styles.deleteButtonText}>Remove</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             )
           })
         )}
