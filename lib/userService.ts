@@ -401,39 +401,48 @@ export const userService = {
 
   // Get caregivers assigned to a specific wearer
   async getAssignedCaregivers(wearerId: string): Promise<any[]> {
-    const { data, error } = await supabase
+    // First get the assignments
+    const { data: assignments, error: assignmentsError } = await supabase
       .from('caregiver_wearer_assignments')
-      .select(`
-        id,
-        relationship_type,
-        is_primary,
-        is_emergency_contact,
-        caregiver:users!caregiver_user_id (
-          id,
-          email,
-          display_name,
-          phone_number,
-          user_type
-        )
-      `)
+      .select('*')
       .eq('wearer_id', wearerId)
 
-    if (error) {
-      throw error
+    if (assignmentsError) {
+      console.error('Error fetching assignments:', assignmentsError)
+      throw assignmentsError
     }
 
-    // Flatten the structure for easier use
-    return (data || []).map((assignment: any) => ({
-      assignment_id: assignment.id,
-      id: assignment.caregiver.id,
-      email: assignment.caregiver.email,
-      display_name: assignment.caregiver.display_name,
-      phone_number: assignment.caregiver.phone_number,
-      user_type: assignment.caregiver.user_type,
-      relationship_type: assignment.relationship_type,
-      is_primary: assignment.is_primary,
-      is_emergency_contact: assignment.is_emergency_contact
-    }))
+    if (!assignments || assignments.length === 0) {
+      return []
+    }
+
+    // Then get the user details for each caregiver
+    const caregiverIds = assignments.map((a: any) => a.caregiver_user_id)
+    const { data: caregivers, error: caregiversError } = await supabase
+      .from('users')
+      .select('id, email, display_name, phone_number, user_type')
+      .in('id', caregiverIds)
+
+    if (caregiversError) {
+      console.error('Error fetching caregivers:', caregiversError)
+      throw caregiversError
+    }
+
+    // Combine the data
+    return assignments.map((assignment: any) => {
+      const caregiver = caregivers?.find((c: any) => c.id === assignment.caregiver_user_id)
+      return {
+        assignment_id: assignment.id,
+        id: caregiver?.id,
+        email: caregiver?.email,
+        display_name: caregiver?.display_name,
+        phone_number: caregiver?.phone_number,
+        user_type: caregiver?.user_type,
+        relationship_type: assignment.relationship_type,
+        is_primary: assignment.is_primary,
+        is_emergency_contact: assignment.is_emergency_contact
+      }
+    })
   },
 
   // Get caregivers available to assign (not yet assigned to this wearer)
