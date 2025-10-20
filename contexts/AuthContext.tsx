@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { UserProfile, userService, InvitationInfo } from '../lib/userService'
+import { PushNotificationService } from '../lib/pushNotifications'
 
 interface AuthContextType {
   session: Session | null
@@ -39,12 +40,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setProfileLoading(true)
       const profile = await userService.getUserProfile(authUserId)
-      
+
       if (profile) {
         setUserProfile(profile)
         setInvitationInfo(null)
         const needsSetup = !(await userService.hasCompletedProfile(profile))
         setNeedsProfileSetup(needsSetup)
+
+        // Register for push notifications once profile is loaded
+        if (!needsSetup) {
+          PushNotificationService.registerDevice(profile.id).catch((error) => {
+            console.error('Failed to register for push notifications:', error)
+          })
+        }
       } else {
         // User profile doesn't exist - check for invitation first
         const invitation = await userService.checkInvitation(email)

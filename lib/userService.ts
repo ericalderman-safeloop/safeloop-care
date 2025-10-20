@@ -192,6 +192,29 @@ export const userService = {
     return !!(userProfile.display_name && userProfile.display_name.trim().length > 0)
   },
 
+  // Update push notification token for the user
+  async updatePushToken(userId: string, apnsToken?: string, fcmToken?: string): Promise<void> {
+    const updates: any = {
+      updated_at: new Date().toISOString()
+    }
+
+    if (apnsToken !== undefined) {
+      updates.apns_token = apnsToken
+    }
+    if (fcmToken !== undefined) {
+      updates.fcm_token = fcmToken
+    }
+
+    const { error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+
+    if (error) {
+      throw error
+    }
+  },
+
   // Invite a caregiver to join the account
   async inviteCaregiver(email: string, safeloopAccountId: string): Promise<void> {
     const { data, error } = await supabase.functions.invoke('invite-caregiver', {
