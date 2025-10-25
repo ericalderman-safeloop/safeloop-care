@@ -11,7 +11,9 @@ interface HomeScreenProps {
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { userProfile } = useAuth()
-  const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([])
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active')
+  const [activeRequests, setActiveRequests] = useState<HelpRequest[]>([])
+  const [resolvedRequests, setResolvedRequests] = useState<HelpRequest[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -25,8 +27,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     if (!userProfile?.safeloop_account_id) return
 
     try {
-      const requests = await userService.getActiveHelpRequests(userProfile.safeloop_account_id)
-      setHelpRequests(requests)
+      const [active, resolved] = await Promise.all([
+        userService.getActiveHelpRequests(userProfile.safeloop_account_id),
+        userService.getResolvedHelpRequests(userProfile.safeloop_account_id)
+      ])
+      setActiveRequests(active)
+      setResolvedRequests(resolved)
     } catch (error) {
       console.error('Error loading help requests:', error)
     } finally {
@@ -161,52 +167,127 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       <ScrollView style={styles.content}>
         <View style={styles.statusGrid}>
           <View style={styles.statusCard}>
-            <Text style={[styles.statusNumber, helpRequests.length > 0 && styles.statusNumberAlert]}>
-              {helpRequests.length}
+            <Text style={[styles.statusNumber, activeRequests.length > 0 && styles.statusNumberAlert]}>
+              {activeRequests.length}
             </Text>
             <Text style={styles.statusLabel}>Active Alerts</Text>
           </View>
         </View>
 
-        {helpRequests.length === 0 ? (
-          <View style={styles.alertCard}>
-            <Text style={styles.alertTitle}>No Active Alerts</Text>
-            <Text style={styles.alertDescription}>
-              All SafeLoop Watch devices are functioning normally
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'active' && styles.tabActive]}
+            onPress={() => setActiveTab('active')}
+          >
+            <Text style={[styles.tabText, activeTab === 'active' && styles.tabTextActive]}>
+              Active ({activeRequests.length})
             </Text>
-          </View>
-        ) : (
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'history' && styles.tabActive]}
+            onPress={() => setActiveTab('history')}
+          >
+            <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>
+              History ({resolvedRequests.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Active Tab */}
+        {activeTab === 'active' && (
           <>
-            <Text style={styles.sectionTitle}>Active Help Requests</Text>
-            {helpRequests.map((request) => (
-              <View key={request.id} style={styles.helpRequestCard}>
-                <View style={styles.helpRequestHeader}>
-                  <Text style={styles.helpRequestType}>
-                    {formatRequestType(request.request_type)}
-                  </Text>
-                  <Text style={styles.helpRequestTime}>
-                    {formatTime(request.created_at)}
-                  </Text>
-                </View>
-
-                <Text style={styles.helpRequestWearer}>
-                  {request.wearer?.name || 'Unknown Wearer'}
+            {activeRequests.length === 0 ? (
+              <View style={styles.alertCard}>
+                <Text style={styles.alertTitle}>No Active Alerts</Text>
+                <Text style={styles.alertDescription}>
+                  All SafeLoop Watch devices are functioning normally
                 </Text>
-
-                {request.location_latitude && request.location_longitude && (
-                  <Text style={styles.helpRequestLocation}>
-                    📍 Location: {request.location_latitude.toFixed(4)}, {request.location_longitude.toFixed(4)}
-                  </Text>
-                )}
-
-                <TouchableOpacity
-                  style={styles.resolveButton}
-                  onPress={() => handleResolveAlert(request.id)}
-                >
-                  <Text style={styles.resolveButtonText}>Resolve Alert</Text>
-                </TouchableOpacity>
               </View>
-            ))}
+            ) : (
+              <>
+                {activeRequests.map((request) => (
+                  <View key={request.id} style={styles.helpRequestCard}>
+                    <View style={styles.helpRequestHeader}>
+                      <Text style={styles.helpRequestType}>
+                        {formatRequestType(request.request_type)}
+                      </Text>
+                      <Text style={styles.helpRequestTime}>
+                        {formatTime(request.created_at)}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.helpRequestWearer}>
+                      {request.wearer?.name || 'Unknown Wearer'}
+                    </Text>
+
+                    {request.location_latitude && request.location_longitude && (
+                      <Text style={styles.helpRequestLocation}>
+                        📍 Location: {request.location_latitude.toFixed(4)}, {request.location_longitude.toFixed(4)}
+                      </Text>
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.resolveButton}
+                      onPress={() => handleResolveAlert(request.id)}
+                    >
+                      <Text style={styles.resolveButtonText}>Resolve Alert</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </>
+            )}
+          </>
+        )}
+
+        {/* History Tab */}
+        {activeTab === 'history' && (
+          <>
+            {resolvedRequests.length === 0 ? (
+              <View style={styles.alertCard}>
+                <Text style={styles.alertTitle}>No History</Text>
+                <Text style={styles.alertDescription}>
+                  No resolved help requests yet
+                </Text>
+              </View>
+            ) : (
+              <>
+                {resolvedRequests.map((request) => (
+                  <View key={request.id} style={styles.resolvedRequestCard}>
+                    <View style={styles.helpRequestHeader}>
+                      <Text style={styles.resolvedRequestType}>
+                        {formatRequestType(request.request_type)}
+                      </Text>
+                      <Text style={styles.helpRequestTime}>
+                        {formatTime(request.created_at)}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.helpRequestWearer}>
+                      {request.wearer?.name || 'Unknown Wearer'}
+                    </Text>
+
+                    <View style={styles.statusBadge}>
+                      <Text style={styles.statusBadgeText}>
+                        {request.event_status === 'false_alarm' ? '⚠️ False Alarm' : '✅ Resolved'}
+                      </Text>
+                    </View>
+
+                    {request.resolved_at && (
+                      <Text style={styles.resolvedTime}>
+                        Resolved: {formatTime(request.resolved_at)}
+                      </Text>
+                    )}
+
+                    {request.notes && (
+                      <Text style={styles.notes}>
+                        Notes: {request.notes}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </>
+            )}
           </>
         )}
       </ScrollView>
@@ -381,5 +462,83 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    borderRadius: 8,
+    backgroundColor: '#e0e0e0',
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  tabActive: {
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
+  },
+  tabTextActive: {
+    color: '#2196F3',
+    fontWeight: '600',
+  },
+  resolvedRequestCard: {
+    backgroundColor: '#f5f5f5',
+    borderLeftWidth: 4,
+    borderLeftColor: '#9e9e9e',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3.84,
+    elevation: 3,
+  },
+  resolvedRequestType: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  statusBadge: {
+    backgroundColor: '#e8f5e9',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+    marginVertical: 8,
+  },
+  statusBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4CAF50',
+  },
+  resolvedTime: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  notes: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 })

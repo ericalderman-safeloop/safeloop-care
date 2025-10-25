@@ -586,6 +586,44 @@ export const userService = {
     return data || []
   },
 
+  // Get resolved help requests (resolved and false_alarm)
+  async getResolvedHelpRequests(safeloopAccountId: string, limit: number = 50): Promise<HelpRequest[]> {
+    const { data, error } = await supabase
+      .from('help_requests')
+      .select(`
+        id,
+        wearer_id,
+        device_id,
+        request_type,
+        event_status,
+        fall_response,
+        location_latitude,
+        location_longitude,
+        location_accuracy,
+        location_timestamp,
+        responded_by,
+        responded_at,
+        resolved_at,
+        notes,
+        created_at,
+        wearer:wearers!inner(
+          id,
+          name,
+          safeloop_account_id
+        )
+      `)
+      .in('event_status', ['resolved', 'false_alarm'])
+      .eq('wearer.safeloop_account_id', safeloopAccountId)
+      .order('resolved_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      throw error
+    }
+
+    return data || []
+  },
+
   // Update help request status
   async updateHelpRequestStatus(
     helpRequestId: string,
