@@ -594,8 +594,7 @@ export const userService = {
     notes?: string
   ): Promise<void> {
     const updates: any = {
-      event_status: status,
-      updated_at: new Date().toISOString()
+      event_status: status
     }
 
     if (status === 'responded_to') {
