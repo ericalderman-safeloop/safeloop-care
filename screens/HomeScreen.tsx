@@ -104,7 +104,19 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const now = new Date()
+    const isToday = date.toDateString() === now.toDateString()
+
+    if (isToday) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    } else {
+      return date.toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
   }
 
   const formatRequestType = (type: string) => {
