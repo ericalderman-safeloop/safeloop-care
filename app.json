@@ -30,12 +30,20 @@
     "plugins": [
       "expo-dev-client",
       "expo-apple-authentication",
+      "expo-notifications",
       [
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.212440927886-lug7neo6r1iq26t7j9ppn266p22ife36"
         }
-      ]
-    ]
+      ],
+      "react-native-maps"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "50586713-2ce3-4354-b008-9bdc4aac0eed"
+      }
+    },
+    "owner": "ericalderman"
   }
 }
