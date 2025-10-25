@@ -263,8 +263,8 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
                     latitude: helpRequest.location_latitude,
                     longitude: helpRequest.location_longitude,
                   }}
-                  title={helpRequest.wearer?.name}
-                  description={requestType}
+                  title={helpRequest.wearer?.name || 'Help Request'}
+                  description={requestType || 'Emergency Alert'}
                 />
               </MapView>
               {helpRequest.location_accuracy && (
