@@ -58,6 +58,28 @@ export interface CreateWearerData {
   seven_digit_code: string
 }
 
+export interface HelpRequest {
+  id: string
+  wearer_id: string
+  device_id?: string
+  request_type: 'manual_request' | 'fall'
+  event_status: 'active' | 'responded_to' | 'resolved' | 'false_alarm'
+  fall_response?: 'confirmed' | 'unresponsive'
+  location_latitude?: number
+  location_longitude?: number
+  location_accuracy?: number
+  location_timestamp?: string
+  responded_by?: string
+  responded_at?: string
+  resolved_at?: string
+  notes?: string
+  created_at: string
+  wearer?: {
+    id: string
+    name: string
+  }
+}
+
 export const userService = {
   // Check if user profile exists
   async getUserProfile(authUserId: string): Promise<UserProfile | null> {
@@ -521,6 +543,76 @@ export const userService = {
       .from('caregiver_wearer_assignments')
       .delete()
       .eq('id', assignmentId)
+
+    if (error) {
+      throw error
+    }
+  },
+
+  // Get active help requests for caregivers assigned to specific wearers
+  async getActiveHelpRequests(safeloopAccountId: string): Promise<HelpRequest[]> {
+    const { data, error } = await supabase
+      .from('help_requests')
+      .select(`
+        id,
+        wearer_id,
+        device_id,
+        request_type,
+        event_status,
+        fall_response,
+        location_latitude,
+        location_longitude,
+        location_accuracy,
+        location_timestamp,
+        responded_by,
+        responded_at,
+        resolved_at,
+        notes,
+        created_at,
+        wearer:wearers!inner(
+          id,
+          name,
+          safeloop_account_id
+        )
+      `)
+      .eq('event_status', 'active')
+      .eq('wearer.safeloop_account_id', safeloopAccountId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    return data || []
+  },
+
+  // Update help request status
+  async updateHelpRequestStatus(
+    helpRequestId: string,
+    status: 'responded_to' | 'resolved' | 'false_alarm',
+    userId: string,
+    notes?: string
+  ): Promise<void> {
+    const updates: any = {
+      event_status: status,
+      updated_at: new Date().toISOString()
+    }
+
+    if (status === 'responded_to') {
+      updates.responded_by = userId
+      updates.responded_at = new Date().toISOString()
+    } else if (status === 'resolved' || status === 'false_alarm') {
+      updates.resolved_at = new Date().toISOString()
+    }
+
+    if (notes) {
+      updates.notes = notes
+    }
+
+    const { error } = await supabase
+      .from('help_requests')
+      .update(updates)
+      .eq('id', helpRequestId)
 
     if (error) {
       throw error
