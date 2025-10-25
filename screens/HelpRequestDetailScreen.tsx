@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Linking, ActivityIndicator, Dimensions } from 'react-native'
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps'
+import MapView, { Marker } from 'react-native-maps'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, HelpRequest } from '../lib/userService'
 
@@ -248,10 +248,9 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
             <View style={styles.mapContainer}>
               <MapView
                 style={styles.map}
-                provider={PROVIDER_DEFAULT}
                 initialRegion={{
-                  latitude: helpRequest.location_latitude,
-                  longitude: helpRequest.location_longitude,
+                  latitude: Number(helpRequest.location_latitude),
+                  longitude: Number(helpRequest.location_longitude),
                   latitudeDelta: 0.01,
                   longitudeDelta: 0.01,
                 }}
@@ -260,8 +259,8 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
               >
                 <Marker
                   coordinate={{
-                    latitude: helpRequest.location_latitude,
-                    longitude: helpRequest.location_longitude,
+                    latitude: Number(helpRequest.location_latitude),
+                    longitude: Number(helpRequest.location_longitude),
                   }}
                   title={helpRequest.wearer?.name || 'Help Request'}
                   description={requestType || 'Emergency Alert'}
