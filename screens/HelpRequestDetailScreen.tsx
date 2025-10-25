@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Linking, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Linking, ActivityIndicator, Dimensions } from 'react-native'
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, HelpRequest } from '../lib/userService'
 
@@ -244,17 +245,37 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
         {helpRequest.location_latitude && helpRequest.location_longitude && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Location</Text>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoText}>
-                📍 {helpRequest.location_latitude.toFixed(6)}, {helpRequest.location_longitude.toFixed(6)}
-              </Text>
+            <View style={styles.mapContainer}>
+              <MapView
+                style={styles.map}
+                provider={PROVIDER_DEFAULT}
+                initialRegion={{
+                  latitude: helpRequest.location_latitude,
+                  longitude: helpRequest.location_longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                scrollEnabled={true}
+                zoomEnabled={true}
+              >
+                <Marker
+                  coordinate={{
+                    latitude: helpRequest.location_latitude,
+                    longitude: helpRequest.location_longitude,
+                  }}
+                  title={helpRequest.wearer?.name}
+                  description={requestType}
+                />
+              </MapView>
               {helpRequest.location_accuracy && (
-                <Text style={styles.infoTextSmall}>
-                  Accuracy: ±{helpRequest.location_accuracy.toFixed(0)}m
-                </Text>
+                <View style={styles.accuracyBadge}>
+                  <Text style={styles.accuracyText}>
+                    Accuracy: ±{helpRequest.location_accuracy.toFixed(0)}m
+                  </Text>
+                </View>
               )}
               <TouchableOpacity style={styles.mapButton} onPress={openInMaps}>
-                <Text style={styles.mapButtonText}>Open in Maps</Text>
+                <Text style={styles.mapButtonText}>Open in Apple Maps</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -434,11 +455,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
+  mapContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  map: {
+    width: '100%',
+    height: 300,
+  },
+  accuracyBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  accuracyText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
   mapButton: {
     backgroundColor: '#2196F3',
-    borderRadius: 8,
     padding: 12,
-    marginTop: 12,
     alignItems: 'center',
   },
   mapButtonText: {
