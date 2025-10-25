@@ -242,13 +242,16 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
         )}
 
         {/* Location */}
-        {helpRequest.location_latitude && helpRequest.location_longitude && (
+        {helpRequest.location_latitude &&
+         helpRequest.location_longitude &&
+         !isNaN(Number(helpRequest.location_latitude)) &&
+         !isNaN(Number(helpRequest.location_longitude)) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Location</Text>
             <View style={styles.mapContainer}>
               <MapView
                 style={styles.map}
-                initialRegion={{
+                region={{
                   latitude: Number(helpRequest.location_latitude),
                   longitude: Number(helpRequest.location_longitude),
                   latitudeDelta: 0.01,
@@ -256,20 +259,22 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
                 }}
                 scrollEnabled={true}
                 zoomEnabled={true}
+                pitchEnabled={false}
+                rotateEnabled={false}
               >
                 <Marker
                   coordinate={{
                     latitude: Number(helpRequest.location_latitude),
                     longitude: Number(helpRequest.location_longitude),
                   }}
-                  title={helpRequest.wearer?.name || 'Help Request'}
-                  description={requestType || 'Emergency Alert'}
+                  title={String(helpRequest.wearer?.name || 'Help Request')}
+                  description={String(requestType || 'Emergency Alert')}
                 />
               </MapView>
               {helpRequest.location_accuracy && (
                 <View style={styles.accuracyBadge}>
                   <Text style={styles.accuracyText}>
-                    Accuracy: ±{helpRequest.location_accuracy.toFixed(0)}m
+                    Accuracy: ±{Number(helpRequest.location_accuracy).toFixed(0)}m
                   </Text>
                 </View>
               )}
