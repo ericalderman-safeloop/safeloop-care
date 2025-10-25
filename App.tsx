@@ -16,6 +16,7 @@ import EditWearerScreen from './screens/EditWearerScreen'
 import WearerDetailsScreen from './screens/WearerDetailsScreen'
 import CaregiversScreen from './screens/CaregiversScreen'
 import InviteCaregiverScreen from './screens/InviteCaregiverScreen'
+import HelpRequestDetailScreen from './screens/HelpRequestDetailScreen'
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -81,6 +82,7 @@ function AppNavigator() {
             <Stack.Screen name="WearerDetails" component={WearerDetailsScreen} />
             <Stack.Screen name="Caregivers" component={CaregiversScreen} />
             <Stack.Screen name="InviteCaregiver" component={InviteCaregiverScreen} />
+            <Stack.Screen name="HelpRequestDetail" component={HelpRequestDetailScreen} />
           </>
         )}
       </Stack.Navigator>

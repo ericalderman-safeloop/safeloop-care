@@ -74,40 +74,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   }
 
-  const handleResolveAlert = async (helpRequestId: string) => {
-    if (!userProfile?.id) return
-
-    Alert.alert(
-      'Resolve Alert',
-      'How would you like to resolve this alert?',
-      [
-        {
-          text: 'Mark as Resolved',
-          onPress: async () => {
-            try {
-              await userService.updateHelpRequestStatus(helpRequestId, 'resolved', userProfile.id)
-              Alert.alert('Success', 'Alert marked as resolved')
-            } catch (error) {
-              Alert.alert('Error', 'Failed to update alert status')
-            }
-          }
-        },
-        {
-          text: 'Mark as False Alarm',
-          onPress: async () => {
-            try {
-              await userService.updateHelpRequestStatus(helpRequestId, 'false_alarm', userProfile.id)
-              Alert.alert('Success', 'Alert marked as false alarm')
-            } catch (error) {
-              Alert.alert('Error', 'Failed to update alert status')
-            }
-          }
-        },
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    )
-  }
-
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)
     const now = new Date()
@@ -228,10 +194,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     )}
 
                     <TouchableOpacity
-                      style={styles.resolveButton}
-                      onPress={() => handleResolveAlert(request.id)}
+                      style={styles.assistButton}
+                      onPress={() => navigation.navigate('HelpRequestDetail', { helpRequestId: request.id })}
                     >
-                      <Text style={styles.resolveButtonText}>Resolve Alert</Text>
+                      <Text style={styles.assistButtonText}>Provide Assistance</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -452,13 +418,13 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 12,
   },
-  resolveButton: {
-    backgroundColor: '#4CAF50',
+  assistButton: {
+    backgroundColor: '#2196F3',
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
   },
-  resolveButtonText: {
+  assistButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',

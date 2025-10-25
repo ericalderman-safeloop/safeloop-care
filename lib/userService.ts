@@ -77,6 +77,15 @@ export interface HelpRequest {
   wearer?: {
     id: string
     name: string
+    date_of_birth?: string
+    gender?: string
+    medical_conditions?: string[]
+    medications?: string[]
+    allergies?: string[]
+    emergency_notes?: string
+    emergency_contact_name?: string
+    emergency_contact_phone?: string
+    emergency_contact_relationship?: string
   }
 }
 
@@ -622,6 +631,53 @@ export const userService = {
     }
 
     return data || []
+  },
+
+  // Get single help request with full details
+  async getHelpRequestDetails(helpRequestId: string): Promise<HelpRequest | null> {
+    const { data, error } = await supabase
+      .from('help_requests')
+      .select(`
+        id,
+        wearer_id,
+        device_id,
+        request_type,
+        event_status,
+        fall_response,
+        location_latitude,
+        location_longitude,
+        location_accuracy,
+        location_timestamp,
+        responded_by,
+        responded_at,
+        resolved_at,
+        notes,
+        created_at,
+        wearer:wearers!inner(
+          id,
+          name,
+          date_of_birth,
+          gender,
+          medical_conditions,
+          medications,
+          allergies,
+          emergency_notes,
+          emergency_contact_name,
+          emergency_contact_phone,
+          emergency_contact_relationship
+        )
+      `)
+      .eq('id', helpRequestId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null
+      }
+      throw error
+    }
+
+    return data
   },
 
   // Update help request status
