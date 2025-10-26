@@ -675,6 +675,20 @@ export const userService = {
   },
 
   // Update help request status
+  async updateHelpRequestNotes(
+    helpRequestId: string,
+    notes: string
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('help_requests')
+      .update({ notes })
+      .eq('id', helpRequestId)
+
+    if (error) {
+      throw error
+    }
+  },
+
   async updateHelpRequestStatus(
     helpRequestId: string,
     status: 'responded_to' | 'resolved' | 'false_alarm',

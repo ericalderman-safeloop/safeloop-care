@@ -93,14 +93,12 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
   }
 
   const handleSaveNotes = async () => {
-    if (!userProfile?.id || !helpRequest?.id) return
+    if (!helpRequest?.id) return
 
     setSaving(true)
     try {
-      await userService.updateHelpRequestStatus(
+      await userService.updateHelpRequestNotes(
         helpRequest.id,
-        'responded_to',
-        userProfile.id,
         notes
       )
       Alert.alert('Success', 'Notes saved successfully')
