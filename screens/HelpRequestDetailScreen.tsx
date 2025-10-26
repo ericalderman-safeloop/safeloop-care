@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Linking, ActivityIndicator, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Linking, ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform } from 'react-native'
 import MapView, { Marker } from 'react-native-maps'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, HelpRequest } from '../lib/userService'
@@ -202,7 +202,11 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
   const requestType = helpRequest.request_type === 'fall' ? '🚨 Fall Detected' : '🆘 Help Requested'
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>← Back</Text>
@@ -387,7 +391,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
           </View>
         )}
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   )
 }
 
