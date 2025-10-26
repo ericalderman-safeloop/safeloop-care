@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GoogleSignin } from '@react-native-google-signin/google-signin'
 import { ActivityIndicator, View, Text } from 'react-native'
+import * as Notifications from 'expo-notifications'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import LoginScreen from './screens/LoginScreen'
 import HomeScreen from './screens/HomeScreen'
@@ -52,6 +53,26 @@ const Stack = createNativeStackNavigator()
 
 function AppNavigator() {
   const { session, loading, profileLoading, needsProfileSetup } = useAuth()
+  const navigationRef = useRef(null)
+
+  useEffect(() => {
+    // Handle notification taps to navigate to help request detail
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data
+
+      // Check if this is a help_request notification
+      if (data.type === 'help_request' && data.help_request_id && navigationRef.current) {
+        // Navigate to the help request detail screen
+        navigationRef.current.navigate('HelpRequestDetail', {
+          helpRequestId: data.help_request_id
+        })
+      }
+    })
+
+    return () => {
+      Notifications.removeNotificationSubscription(subscription)
+    }
+  }, [])
 
   if (loading || profileLoading) {
     return (
@@ -65,7 +86,7 @@ function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!session ? (
           <Stack.Screen name="Login" component={LoginScreen} />
