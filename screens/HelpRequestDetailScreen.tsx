@@ -49,19 +49,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
       return
     }
 
-    Alert.alert(
-      'Call Wearer',
-      `Call ${helpRequest?.wearer?.name || 'wearer'} at ${phoneNumber}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Call',
-          onPress: () => {
-            Linking.openURL(`tel:${phoneNumber}`)
-          }
-        }
-      ]
-    )
+    Linking.openURL(`tel:${phoneNumber}`)
   }
 
   const handleSaveNotes = async () => {
