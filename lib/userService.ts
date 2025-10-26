@@ -38,9 +38,7 @@ export interface Wearer {
   medications?: string[]
   allergies?: string[]
   emergency_notes?: string
-  emergency_contact_name?: string
-  emergency_contact_phone?: string
-  emergency_contact_relationship?: string
+  wearer_contact_phone?: string
   created_at: string
   updated_at: string
   device?: {
@@ -83,9 +81,7 @@ export interface HelpRequest {
     medications?: string[]
     allergies?: string[]
     emergency_notes?: string
-    emergency_contact_name?: string
-    emergency_contact_phone?: string
-    emergency_contact_relationship?: string
+    wearer_contact_phone?: string
   }
 }
 
@@ -662,9 +658,7 @@ export const userService = {
           medications,
           allergies,
           emergency_notes,
-          emergency_contact_name,
-          emergency_contact_phone,
-          emergency_contact_relationship
+          wearer_contact_phone
         )
       `)
       .eq('id', helpRequestId)

@@ -30,9 +30,7 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
   const [formData, setFormData] = useState({
     name: '',
     date_of_birth: '',
-    emergency_contact_name: '',
-    emergency_contact_phone: '',
-    emergency_contact_relationship: '',
+    wearer_contact_phone: '',
     emergency_notes: '',
   })
 
@@ -43,9 +41,7 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
       setFormData({
         name: wearerData.name || '',
         date_of_birth: wearerData.date_of_birth || '',
-        emergency_contact_name: wearerData.emergency_contact_name || '',
-        emergency_contact_phone: wearerData.emergency_contact_phone || '',
-        emergency_contact_relationship: wearerData.emergency_contact_relationship || '',
+        wearer_contact_phone: wearerData.wearer_contact_phone || '',
         emergency_notes: wearerData.emergency_notes || '',
       })
     } catch (error) {
@@ -73,9 +69,7 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
       await userService.updateWearer(wearerId, {
         name: formData.name,
         date_of_birth: formData.date_of_birth || undefined,
-        emergency_contact_name: formData.emergency_contact_name || undefined,
-        emergency_contact_phone: formData.emergency_contact_phone || undefined,
-        emergency_contact_relationship: formData.emergency_contact_relationship || undefined,
+        wearer_contact_phone: formData.wearer_contact_phone || undefined,
         emergency_notes: formData.emergency_notes || undefined,
       })
       
@@ -199,42 +193,21 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
             </Text>
           </View>
 
-          <Text style={styles.sectionTitle}>Emergency Contact</Text>
+          <Text style={styles.sectionTitle}>Contact Information</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Contact Name</Text>
+            <Text style={styles.label}>Wearer Contact Phone</Text>
             <TextInput
               style={styles.input}
-              value={formData.emergency_contact_name}
-              onChangeText={(text) => setFormData({ ...formData, emergency_contact_name: text })}
-              placeholder="Emergency contact's name"
-              autoCapitalize="words"
-              returnKeyType="next"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Contact Phone</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.emergency_contact_phone}
-              onChangeText={(text) => setFormData({ ...formData, emergency_contact_phone: text })}
-              placeholder="Emergency contact's phone number"
+              value={formData.wearer_contact_phone}
+              onChangeText={(text) => setFormData({ ...formData, wearer_contact_phone: text })}
+              placeholder="Phone number to reach the wearer"
               keyboardType="phone-pad"
               returnKeyType="next"
             />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Relationship</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.emergency_contact_relationship}
-              onChangeText={(text) => setFormData({ ...formData, emergency_contact_relationship: text })}
-              placeholder="e.g., Spouse, Child, Friend"
-              autoCapitalize="words"
-              returnKeyType="next"
-            />
+            <Text style={styles.helperText}>
+              Phone number to call the wearer in case of emergency
+            </Text>
           </View>
 
           <View style={styles.inputGroup}>

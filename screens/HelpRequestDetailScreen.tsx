@@ -43,15 +43,15 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
   }
 
   const handleCallWearer = () => {
-    const phoneNumber = helpRequest?.wearer?.emergency_contact_phone
+    const phoneNumber = helpRequest?.wearer?.wearer_contact_phone
     if (!phoneNumber) {
-      Alert.alert('No Contact', 'No emergency contact phone number available for this wearer')
+      Alert.alert('No Contact', 'No contact phone number available for this wearer')
       return
     }
 
     Alert.alert(
-      'Call Emergency Contact',
-      `Call ${helpRequest?.wearer?.emergency_contact_name || 'emergency contact'} at ${phoneNumber}?`,
+      'Call Wearer',
+      `Call ${helpRequest?.wearer?.name || 'wearer'} at ${phoneNumber}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -285,21 +285,14 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
           </View>
         )}
 
-        {/* Emergency Contact */}
-        {helpRequest.wearer?.emergency_contact_phone && (
+        {/* Contact Wearer */}
+        {helpRequest.wearer?.wearer_contact_phone && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Emergency Contact</Text>
+            <Text style={styles.sectionTitle}>Contact Wearer</Text>
             <View style={styles.infoCard}>
-              {helpRequest.wearer.emergency_contact_name && (
-                <Text style={styles.infoText}>
-                  {helpRequest.wearer.emergency_contact_name}
-                  {helpRequest.wearer.emergency_contact_relationship &&
-                    ` (${helpRequest.wearer.emergency_contact_relationship})`}
-                </Text>
-              )}
-              <Text style={styles.infoText}>{helpRequest.wearer.emergency_contact_phone}</Text>
+              <Text style={styles.infoText}>{helpRequest.wearer.wearer_contact_phone}</Text>
               <TouchableOpacity style={styles.callButton} onPress={handleCallWearer}>
-                <Text style={styles.callButtonText}>📞 Call Emergency Contact</Text>
+                <Text style={styles.callButtonText}>📞 Call {helpRequest.wearer.name}</Text>
               </TouchableOpacity>
             </View>
           </View>
