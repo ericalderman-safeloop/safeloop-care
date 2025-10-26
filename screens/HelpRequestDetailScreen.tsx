@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Linking, ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform } from 'react-native'
-import MapView, { Marker } from 'react-native-maps'
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, HelpRequest } from '../lib/userService'
 import { supabase } from '../lib/supabase'
@@ -165,7 +165,12 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
       return
     }
 
-    const url = `http://maps.apple.com/?ll=${helpRequest.location_latitude},${helpRequest.location_longitude}`
+    // Use current location if available, otherwise use initial location
+    const lat = currentLocation ? currentLocation.latitude : helpRequest.location_latitude
+    const lng = currentLocation ? currentLocation.longitude : helpRequest.location_longitude
+
+    // Google Maps URL works on both iOS and Android
+    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
     Linking.openURL(url)
   }
 
@@ -280,6 +285,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
             <Text style={styles.sectionTitle}>Location</Text>
             <View style={styles.mapContainer}>
               <MapView
+                provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 region={{
                   latitude: currentLocation ? currentLocation.latitude : Number(helpRequest.location_latitude),
@@ -327,7 +333,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
                 </View>
               )}
               <TouchableOpacity style={styles.mapButton} onPress={openInMaps}>
-                <Text style={styles.mapButtonText}>Open in Apple Maps</Text>
+                <Text style={styles.mapButtonText}>Open in Google Maps</Text>
               </TouchableOpacity>
             </View>
           </View>
