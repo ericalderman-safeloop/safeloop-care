@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput,
 import MapView, { Marker } from 'react-native-maps'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, HelpRequest } from '../lib/userService'
+import { supabase } from '../lib/supabase'
 
 interface HelpRequestDetailScreenProps {
   navigation: any
@@ -13,15 +14,54 @@ interface HelpRequestDetailScreenProps {
   }
 }
 
+interface LocationUpdate {
+  latitude: number
+  longitude: number
+  accuracy?: number
+  timestamp: string
+}
+
 export default function HelpRequestDetailScreen({ navigation, route }: HelpRequestDetailScreenProps) {
   const { userProfile } = useAuth()
   const [helpRequest, setHelpRequest] = useState<HelpRequest | null>(null)
   const [loading, setLoading] = useState(true)
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [currentLocation, setCurrentLocation] = useState<LocationUpdate | null>(null)
 
   useEffect(() => {
     loadHelpRequest()
+  }, [route.params.helpRequestId])
+
+  useEffect(() => {
+    if (!route.params.helpRequestId) return
+
+    const channelName = `location-updates-${route.params.helpRequestId}`
+
+    const locationChannel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'location_updates',
+          filter: `help_request_id=eq.${route.params.helpRequestId}`
+        },
+        (payload) => {
+          setCurrentLocation({
+            latitude: Number(payload.new.latitude),
+            longitude: Number(payload.new.longitude),
+            accuracy: payload.new.accuracy ? Number(payload.new.accuracy) : undefined,
+            timestamp: payload.new.timestamp
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(locationChannel)
+    }
   }, [route.params.helpRequestId])
 
   const loadHelpRequest = async () => {
@@ -240,8 +280,8 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
               <MapView
                 style={styles.map}
                 region={{
-                  latitude: Number(helpRequest.location_latitude),
-                  longitude: Number(helpRequest.location_longitude),
+                  latitude: currentLocation ? currentLocation.latitude : Number(helpRequest.location_latitude),
+                  longitude: currentLocation ? currentLocation.longitude : Number(helpRequest.location_longitude),
                   latitudeDelta: 0.01,
                   longitudeDelta: 0.01,
                 }}
@@ -250,20 +290,38 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
                 pitchEnabled={false}
                 rotateEnabled={false}
               >
+                {/* Initial location marker (blue) */}
                 <Marker
                   coordinate={{
                     latitude: Number(helpRequest.location_latitude),
                     longitude: Number(helpRequest.location_longitude),
                   }}
                   title={String(helpRequest.wearer?.name || 'Help Request')}
-                  description={String(requestType || 'Emergency Alert')}
+                  description="Initial location"
+                  pinColor="blue"
                 />
+
+                {/* Current location marker (red) - only show if different from initial */}
+                {currentLocation && (
+                  <Marker
+                    coordinate={{
+                      latitude: currentLocation.latitude,
+                      longitude: currentLocation.longitude,
+                    }}
+                    title={String(helpRequest.wearer?.name || 'Wearer')}
+                    description="Current location"
+                    pinColor="red"
+                  />
+                )}
               </MapView>
-              {helpRequest.location_accuracy && (
+              {(currentLocation?.accuracy || helpRequest.location_accuracy) && (
                 <View style={styles.accuracyBadge}>
                   <Text style={styles.accuracyText}>
-                    Accuracy: ±{Number(helpRequest.location_accuracy).toFixed(0)}m
+                    Accuracy: ±{Number(currentLocation?.accuracy || helpRequest.location_accuracy).toFixed(0)}m
                   </Text>
+                  {currentLocation && (
+                    <Text style={styles.liveIndicator}>🔴 LIVE</Text>
+                  )}
                 </View>
               )}
               <TouchableOpacity style={styles.mapButton} onPress={openInMaps}>
@@ -478,6 +536,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#666',
+  },
+  liveIndicator: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#f44336',
+    marginTop: 2,
   },
   mapButton: {
     backgroundColor: '#2196F3',
