@@ -23,6 +23,17 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   }, [userProfile?.safeloop_account_id])
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Reload help requests when screen comes into focus
+      if (userProfile?.safeloop_account_id) {
+        loadHelpRequests()
+      }
+    })
+
+    return unsubscribe
+  }, [navigation, userProfile?.safeloop_account_id])
+
   const loadHelpRequests = async () => {
     if (!userProfile?.safeloop_account_id) return
 
