@@ -94,8 +94,8 @@ function AppNavigator() {
           <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
         ) : (
           <>
-            <Stack.Screen name="MainMenu" component={MainMenuScreen} />
             <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="MainMenu" component={MainMenuScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Wearers" component={WearersScreen} />
             <Stack.Screen name="RegisterWearer" component={RegisterWearerScreen} />
