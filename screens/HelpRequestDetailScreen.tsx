@@ -285,7 +285,6 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
             <Text style={styles.sectionTitle}>Location</Text>
             <View style={styles.mapContainer}>
               <MapView
-                provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 region={{
                   latitude: currentLocation ? currentLocation.latitude : Number(helpRequest.location_latitude),

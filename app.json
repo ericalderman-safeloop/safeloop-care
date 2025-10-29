@@ -37,7 +37,12 @@
           "iosUrlScheme": "com.googleusercontent.apps.212440927886-lug7neo6r1iq26t7j9ppn266p22ife36"
         }
       ],
-      "react-native-maps"
+      [
+        "react-native-maps",
+        {
+          "googleMapsApiKey": "AIzaSyD2PxIYT0RLZhY_KFI2jsXGNfUDKOPUj8c"
+        }
+      ]
     ],
     "extra": {
       "eas": {
