@@ -11,6 +11,7 @@ export interface UserProfile {
   is_active: boolean
   profile_image_url?: string
   timezone: string
+  push_notifications_enabled: boolean
   created_at: string
   updated_at: string
 }
@@ -69,6 +70,7 @@ export interface HelpRequest {
   location_timestamp?: string
   responded_by?: string
   responded_at?: string
+  resolved_by?: string
   resolved_at?: string
   notes?: string
   created_at: string
@@ -82,6 +84,10 @@ export interface HelpRequest {
     allergies?: string[]
     emergency_notes?: string
     wearer_contact_phone?: string
+  }
+  resolver?: {
+    id: string
+    display_name: string
   }
 }
 
@@ -235,6 +241,21 @@ export const userService = {
     const { error } = await supabase
       .from('users')
       .update(updates)
+      .eq('id', userId)
+
+    if (error) {
+      throw error
+    }
+  },
+
+  // Update push notification enabled/disabled setting
+  async updatePushNotificationEnabled(userId: string, enabled: boolean): Promise<void> {
+    const { error } = await supabase
+      .from('users')
+      .update({
+        push_notifications_enabled: enabled,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', userId)
 
     if (error) {
@@ -608,6 +629,7 @@ export const userService = {
         location_timestamp,
         responded_by,
         responded_at,
+        resolved_by,
         resolved_at,
         notes,
         created_at,
@@ -615,6 +637,10 @@ export const userService = {
           id,
           name,
           safeloop_account_id
+        ),
+        resolver:users!resolved_by(
+          id,
+          display_name
         )
       `)
       .in('event_status', ['resolved', 'false_alarm'])
@@ -703,6 +729,7 @@ export const userService = {
       updates.responded_by = userId
       updates.responded_at = new Date().toISOString()
     } else if (status === 'resolved' || status === 'false_alarm') {
+      updates.resolved_by = userId
       updates.resolved_at = new Date().toISOString()
     }
 

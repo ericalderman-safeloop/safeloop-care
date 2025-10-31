@@ -178,7 +178,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               <View style={styles.alertCard}>
                 <Text style={styles.alertTitle}>No Active Alerts</Text>
                 <Text style={styles.alertDescription}>
-                  All SafeLoop Watch devices are functioning normally
+                  No SafeLoop Watch Wearers currently have any active help alerts.
                 </Text>
               </View>
             ) : (
@@ -253,6 +253,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     {request.resolved_at && (
                       <Text style={styles.resolvedTime}>
                         Resolved: {formatTime(request.resolved_at)}
+                      </Text>
+                    )}
+
+                    {request.resolver?.display_name && (
+                      <Text style={styles.resolvedBy}>
+                        Resolved by: {request.resolver.display_name}
                       </Text>
                     )}
 
@@ -508,6 +514,11 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   resolvedTime: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  resolvedBy: {
     fontSize: 14,
     color: '#666',
     marginTop: 4,
