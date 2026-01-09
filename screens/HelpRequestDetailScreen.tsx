@@ -276,6 +276,19 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
           </View>
         )}
 
+        {/* Contact Wearer */}
+        {helpRequest.wearer?.wearer_contact_phone && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Contact Wearer</Text>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>{helpRequest.wearer.wearer_contact_phone}</Text>
+              <TouchableOpacity style={styles.callButton} onPress={handleCallWearer}>
+                <Text style={styles.callButtonText}>📞 Call {helpRequest.wearer.name}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Location */}
         {helpRequest.location_latitude &&
          helpRequest.location_longitude &&
@@ -333,19 +346,6 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
               )}
               <TouchableOpacity style={styles.mapButton} onPress={openInMaps}>
                 <Text style={styles.mapButtonText}>Open in Google Maps</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Contact Wearer */}
-        {helpRequest.wearer?.wearer_contact_phone && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Contact Wearer</Text>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoText}>{helpRequest.wearer.wearer_contact_phone}</Text>
-              <TouchableOpacity style={styles.callButton} onPress={handleCallWearer}>
-                <Text style={styles.callButtonText}>📞 Call {helpRequest.wearer.name}</Text>
               </TouchableOpacity>
             </View>
           </View>
