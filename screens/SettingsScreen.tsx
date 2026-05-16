@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  Alert, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
   ScrollView,
-  ActivityIndicator 
+  ActivityIndicator,
+  Switch
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, CreateUserProfileData } from '../lib/userService'
@@ -23,6 +24,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
     display_name: '',
     phone_number: '',
   })
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false)
 
   useEffect(() => {
     if (userProfile) {
@@ -30,6 +32,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
         display_name: userProfile.display_name || '',
         phone_number: userProfile.phone_number || '',
       })
+      setPushNotificationsEnabled(userProfile.push_notifications_enabled ?? true)
     }
   }, [userProfile])
 
@@ -54,6 +57,24 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
       Alert.alert('Error', 'Failed to update profile. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handlePushNotificationToggle = async (value: boolean) => {
+    if (!userProfile?.id) {
+      Alert.alert('Error', 'Profile not found. Please try refreshing the app.')
+      return
+    }
+
+    setPushNotificationsEnabled(value)
+    try {
+      await userService.updatePushNotificationEnabled(userProfile.id, value)
+      await refreshUserProfile()
+    } catch (error) {
+      console.error('Error updating push notification settings:', error)
+      Alert.alert('Error', 'Failed to update notification settings. Please try again.')
+      // Revert the toggle on error
+      setPushNotificationsEnabled(!value)
     }
   }
 
@@ -131,6 +152,24 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
           </Text>
         </View>
 
+        <View style={styles.notificationsSection}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          <View style={styles.notificationRow}>
+            <View style={styles.notificationTextContainer}>
+              <Text style={styles.notificationLabel}>Push Notifications</Text>
+              <Text style={styles.notificationDescription}>
+                Receive emergency alerts when help is requested
+              </Text>
+            </View>
+            <Switch
+              value={pushNotificationsEnabled}
+              onValueChange={handlePushNotificationToggle}
+              trackColor={{ false: '#ccc', true: '#2196F3' }}
+              thumbColor={pushNotificationsEnabled ? '#fff' : '#f4f3f4'}
+            />
+          </View>
+        </View>
+        
         <View style={styles.accountInfo}>
           <Text style={styles.sectionTitle}>Account Information</Text>
           <View style={styles.infoRow}>
@@ -150,6 +189,8 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
             </Text>
           </View>
         </View>
+
+
       </ScrollView>
 
       {hasChanges() && (
@@ -272,6 +313,33 @@ const styles = StyleSheet.create({
   },
   activeStatus: {
     color: '#4CAF50',
+  },
+  notificationsSection: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 8,
+  },
+  notificationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  notificationTextContainer: {
+    flex: 1,
+    marginRight: 15,
+  },
+  notificationLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  notificationDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
   },
   saveContainer: {
     padding: 20,

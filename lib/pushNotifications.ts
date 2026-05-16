@@ -1,6 +1,17 @@
-import messaging from '@react-native-firebase/messaging'
+import * as Notifications from 'expo-notifications'
+import * as Device from 'expo-device'
+import Constants from 'expo-constants'
 import { Platform } from 'react-native'
 import { userService } from './userService'
+
+// Configure how notifications are displayed when app is in foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+})
 
 export class PushNotificationService {
   /**
@@ -9,18 +20,32 @@ export class PushNotificationService {
    */
   static async requestPermission(): Promise<boolean> {
     try {
-      const authStatus = await messaging().requestPermission()
-      const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL
-
-      if (enabled) {
-        console.log('✅ Push notification permission granted:', authStatus)
-      } else {
-        console.log('❌ Push notification permission denied')
+      // On Android, notifications are allowed by default
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('emergency', {
+          name: 'Emergency Alerts',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF0000',
+          sound: 'default',
+        })
       }
 
-      return enabled
+      const { status: existingStatus } = await Notifications.getPermissionsAsync()
+      let finalStatus = existingStatus
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync()
+        finalStatus = status
+      }
+
+      if (finalStatus !== 'granted') {
+        console.log('❌ Push notification permission denied')
+        return false
+      }
+
+      console.log('✅ Push notification permission granted')
+      return true
     } catch (error) {
       console.error('Error requesting push notification permission:', error)
       return false
@@ -28,16 +53,27 @@ export class PushNotificationService {
   }
 
   /**
-   * Get the device's push notification token
-   * Returns the FCM token (works for both iOS and Android)
+   * Get the device's Expo Push Token
    */
-  static async getToken(): Promise<string | null> {
+  static async getExpoPushToken(): Promise<string | null> {
     try {
-      const token = await messaging().getToken()
-      console.log('📱 Push notification token:', token)
-      return token
+      // Only works on physical devices
+      if (!Device.isDevice) {
+        console.log('⚠️ Push notifications only work on physical devices')
+        return null
+      }
+
+      // Try to get project ID from config, fallback to undefined
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId
+
+      const token = await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : undefined
+      )
+
+      console.log('📱 Expo Push Token:', token.data)
+      return token.data
     } catch (error) {
-      console.error('Error getting push notification token:', error)
+      console.error('Error getting Expo push token:', error)
       return null
     }
   }
@@ -57,21 +93,17 @@ export class PushNotificationService {
         return false
       }
 
-      // Get the device token
-      const token = await this.getToken()
+      // Get the Expo push token
+      const token = await this.getExpoPushToken()
       if (!token) {
-        console.log('⚠️ Could not get push notification token')
+        console.log('⚠️ Could not get Expo push token')
         return false
       }
 
-      // Save token to user profile based on platform
-      if (Platform.OS === 'ios') {
-        await userService.updatePushToken(userId, token, undefined)
-        console.log('✅ iOS push token saved')
-      } else if (Platform.OS === 'android') {
-        await userService.updatePushToken(userId, undefined, token)
-        console.log('✅ Android push token saved')
-      }
+      // Save token to user profile
+      // Store in both fields for now (we'll use expo_push_token column)
+      await userService.updatePushToken(userId, token, token)
+      console.log('✅ Expo push token saved')
 
       return true
     } catch (error) {
@@ -81,59 +113,32 @@ export class PushNotificationService {
   }
 
   /**
-   * Listen for token refresh events
-   * Tokens can change when app is reinstalled or data is cleared
+   * Set up foreground notification handler
    */
-  static onTokenRefresh(userId: string, callback?: (token: string) => void) {
-    return messaging().onTokenRefresh(async (token) => {
-      console.log('🔄 Push notification token refreshed:', token)
-
-      try {
-        // Update token in database
-        if (Platform.OS === 'ios') {
-          await userService.updatePushToken(userId, token, undefined)
-        } else if (Platform.OS === 'android') {
-          await userService.updatePushToken(userId, undefined, token)
-        }
-
-        if (callback) {
-          callback(token)
-        }
-      } catch (error) {
-        console.error('Error updating refreshed push token:', error)
+  static setupNotificationListeners(
+    onNotificationReceived?: (notification: Notifications.Notification) => void,
+    onNotificationTapped?: (response: Notifications.NotificationResponse) => void
+  ) {
+    // Handle notifications received while app is in foreground
+    const receivedListener = Notifications.addNotificationReceivedListener((notification) => {
+      console.log('📨 Foreground notification received:', notification)
+      if (onNotificationReceived) {
+        onNotificationReceived(notification)
       }
     })
-  }
 
-  /**
-   * Set up foreground notification handler
-   * This displays notifications when app is in foreground
-   */
-  static onForegroundMessage(callback: (message: any) => void) {
-    return messaging().onMessage(async (remoteMessage) => {
-      console.log('📨 Foreground push notification received:', remoteMessage)
-      callback(remoteMessage)
-    })
-  }
-
-  /**
-   * Handle notification taps (when user taps on notification)
-   */
-  static onNotificationTap(callback: (message: any) => void) {
-    // Handle notification tap when app is in background
-    messaging().onNotificationOpenedApp((remoteMessage) => {
-      console.log('📲 Notification opened app:', remoteMessage)
-      callback(remoteMessage)
+    // Handle notification taps
+    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
+      console.log('📲 Notification tapped:', response)
+      if (onNotificationTapped) {
+        onNotificationTapped(response)
+      }
     })
 
-    // Handle notification tap when app was quit
-    messaging()
-      .getInitialNotification()
-      .then((remoteMessage) => {
-        if (remoteMessage) {
-          console.log('📲 Notification opened app from quit state:', remoteMessage)
-          callback(remoteMessage)
-        }
-      })
+    // Return cleanup function
+    return () => {
+      Notifications.removeNotificationSubscription(receivedListener)
+      Notifications.removeNotificationSubscription(responseListener)
+    }
   }
 }

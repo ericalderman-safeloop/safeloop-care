@@ -187,7 +187,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   <View key={request.id} style={styles.helpRequestCard}>
                     <View style={styles.helpRequestHeader}>
                       <Text style={styles.helpRequestType}>
-                        {formatRequestType(request.request_type)}
+                        {request.event_status === 'responded_to'
+                          ? `👤 Being Assisted by ${request.responder?.display_name || 'a caregiver'}`
+                          : formatRequestType(request.request_type)}
                       </Text>
                       <Text style={styles.helpRequestTime}>
                         {formatTime(request.created_at)}
@@ -206,7 +208,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
                     <TouchableOpacity
                       style={styles.assistButton}
-                      onPress={() => navigation.navigate('HelpRequestDetail', { helpRequestId: request.id })}
+                      onPress={async () => {
+                        if (request.event_status === 'active' && userProfile?.id) {
+                          await userService.updateHelpRequestStatus(request.id, 'responded_to', userProfile.id)
+                        }
+                        navigation.navigate('HelpRequestDetail', { helpRequestId: request.id })
+                      }}
                     >
                       <Text style={styles.assistButtonText}>Provide Assistance</Text>
                     </TouchableOpacity>

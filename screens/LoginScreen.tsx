@@ -17,7 +17,6 @@ export default function LoginScreen() {
     try {
       await signInWithApple()
     } catch (error) {
-      console.error('LoginScreen Apple Sign-In error:', error)
       Alert.alert('Error', `Failed to sign in with Apple: ${error.message}`)
     }
   }

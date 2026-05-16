@@ -7,12 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		12FD6930C7E4297878F380BC /* libPods-SafeLoopCare.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EB3958E6234FE1EDC56B3C3F /* libPods-SafeLoopCare.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		1663D60CB6D9337E572D6A47 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BFA43C79F2DA2A029895E29C /* PrivacyInfo.xcprivacy */; };
+		39B2B969D162B3BC16E20A79 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B4A99FFC5C7F7262B49258B6 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		6290AEEC493FAB4171A9DBED /* libPods-SafeLoopCare.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B188D27F1CC0C95574F93DB6 /* libPods-SafeLoopCare.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		D2A1D674F74185333AAD75D0 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA12738B081FE0B3357E20BF /* ExpoModulesProvider.swift */; };
+		CEBAFFEC296ECA0EEA5AE13E /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F55A452455864F96C609D60 /* ExpoModulesProvider.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
@@ -20,13 +20,13 @@
 		13B07F961A680F5B00A75B9A /* SafeLoopCare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SafeLoopCare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = SafeLoopCare/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = SafeLoopCare/Info.plist; sourceTree = "<group>"; };
-		885DBB36D0A034BC06CBBDB4 /* Pods-SafeLoopCare.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SafeLoopCare.release.xcconfig"; path = "Target Support Files/Pods-SafeLoopCare/Pods-SafeLoopCare.release.xcconfig"; sourceTree = "<group>"; };
+		5F55A452455864F96C609D60 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-SafeLoopCare/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		76595A0DF92794943578256B /* Pods-SafeLoopCare.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SafeLoopCare.debug.xcconfig"; path = "Target Support Files/Pods-SafeLoopCare/Pods-SafeLoopCare.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = SafeLoopCare/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B188D27F1CC0C95574F93DB6 /* libPods-SafeLoopCare.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SafeLoopCare.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B4A99FFC5C7F7262B49258B6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = SafeLoopCare/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		BFA43C79F2DA2A029895E29C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = SafeLoopCare/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		CA12738B081FE0B3357E20BF /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-SafeLoopCare/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		CDD6B2A9AC5BFBAD7D240578 /* Pods-SafeLoopCare.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SafeLoopCare.debug.xcconfig"; path = "Target Support Files/Pods-SafeLoopCare/Pods-SafeLoopCare.debug.xcconfig"; sourceTree = "<group>"; };
+		E2EEA36BB9338B890CBE0EB7 /* Pods-SafeLoopCare.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SafeLoopCare.release.xcconfig"; path = "Target Support Files/Pods-SafeLoopCare/Pods-SafeLoopCare.release.xcconfig"; sourceTree = "<group>"; };
+		EB3958E6234FE1EDC56B3C3F /* libPods-SafeLoopCare.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SafeLoopCare.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SafeLoopCare/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* SafeLoopCare-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "SafeLoopCare-Bridging-Header.h"; path = "SafeLoopCare/SafeLoopCare-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,21 +37,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6290AEEC493FAB4171A9DBED /* libPods-SafeLoopCare.a in Frameworks */,
+				12FD6930C7E4297878F380BC /* libPods-SafeLoopCare.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		08ECBFF5C8DD584FAE036F43 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				3EDA9091266F05299DF4EF81 /* SafeLoopCare */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
 		13B07FAE1A68108700A75B9A /* SafeLoopCare */ = {
 			isa = PBXGroup;
 			children = (
@@ -61,7 +53,15 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				BFA43C79F2DA2A029895E29C /* PrivacyInfo.xcprivacy */,
+				B4A99FFC5C7F7262B49258B6 /* PrivacyInfo.xcprivacy */,
+			);
+			name = SafeLoopCare;
+			sourceTree = "<group>";
+		};
+		182F4EB12F8C0DAA8CA280B0 /* SafeLoopCare */ = {
+			isa = PBXGroup;
+			children = (
+				5F55A452455864F96C609D60 /* ExpoModulesProvider.swift */,
 			);
 			name = SafeLoopCare;
 			sourceTree = "<group>";
@@ -70,27 +70,9 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				B188D27F1CC0C95574F93DB6 /* libPods-SafeLoopCare.a */,
+				EB3958E6234FE1EDC56B3C3F /* libPods-SafeLoopCare.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		3EDA9091266F05299DF4EF81 /* SafeLoopCare */ = {
-			isa = PBXGroup;
-			children = (
-				CA12738B081FE0B3357E20BF /* ExpoModulesProvider.swift */,
-			);
-			name = SafeLoopCare;
-			sourceTree = "<group>";
-		};
-		80C53514F697318C20D8B301 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				CDD6B2A9AC5BFBAD7D240578 /* Pods-SafeLoopCare.debug.xcconfig */,
-				885DBB36D0A034BC06CBBDB4 /* Pods-SafeLoopCare.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -107,8 +89,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				80C53514F697318C20D8B301 /* Pods */,
-				08ECBFF5C8DD584FAE036F43 /* ExpoModulesProviders */,
+				9DB5DF6C1DDA9C943A9AA613 /* Pods */,
+				F731AC37976D3FAE54C911AA /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -123,6 +105,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		9DB5DF6C1DDA9C943A9AA613 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				76595A0DF92794943578256B /* Pods-SafeLoopCare.debug.xcconfig */,
+				E2EEA36BB9338B890CBE0EB7 /* Pods-SafeLoopCare.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -130,6 +121,14 @@
 			);
 			name = Supporting;
 			path = SafeLoopCare/Supporting;
+			sourceTree = "<group>";
+		};
+		F731AC37976D3FAE54C911AA /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				182F4EB12F8C0DAA8CA280B0 /* SafeLoopCare */,
+			);
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -140,13 +139,14 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "SafeLoopCare" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				CA935B28A374A69918BD28C9 /* [Expo] Configure project */,
+				933C736436B8D9690B7D0617 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				1C5048B9D3011D0C030C8BEE /* [CP] Embed Pods Frameworks */,
+				DDF83617CA49D37D68619575 /* [CP] Embed Pods Frameworks */,
+				E79F7AE92EB50DAA0045EF48 /* Copy Hermes dSYM */,
 			);
 			buildRules = (
 			);
@@ -163,11 +163,12 @@
 		83CBB9F71A601CBA00E9B192 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1130;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
+						DevelopmentTeam = 488Z8Y695B;
 						LastSwiftMigration = 1250;
-						DevelopmentTeam = "5A2GRHHB7Q";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -198,7 +199,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				1663D60CB6D9337E572D6A47 /* PrivacyInfo.xcprivacy in Resources */,
+				39B2B969D162B3BC16E20A79 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -242,24 +243,6 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		1C5048B9D3011D0C030C8BEE /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-SafeLoopCare/Pods-SafeLoopCare-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SafeLoopCare/Pods-SafeLoopCare-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -268,8 +251,11 @@
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-SafeLoopCare/Pods-SafeLoopCare-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/AppAuth/AppAuthCore_Privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/EXApplication/ExpoApplication_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/EXNotifications/ExpoNotifications_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoDevice/ExpoDevice_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/GTMAppAuth/GTMAppAuth_Privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/GTMSessionFetcher/GTMSessionFetcher_Core_Privacy.bundle",
@@ -288,8 +274,11 @@
 			name = "[CP] Copy Pods Resources";
 			outputPaths = (
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/AppAuthCore_Privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoApplication_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoNotifications_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoDevice_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GTMAppAuth_Privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GTMSessionFetcher_Core_Privacy.bundle",
@@ -310,7 +299,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SafeLoopCare/Pods-SafeLoopCare-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		CA935B28A374A69918BD28C9 /* [Expo] Configure project */ = {
+		933C736436B8D9690B7D0617 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -329,6 +318,42 @@
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-SafeLoopCare/expo-configure-project.sh\"\n";
 		};
+		DDF83617CA49D37D68619575 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-SafeLoopCare/Pods-SafeLoopCare-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SafeLoopCare/Pods-SafeLoopCare-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		E79F7AE92EB50DAA0045EF48 /* Copy Hermes dSYM */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Hermes dSYM";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\n\nif [ -d \"${PODS_ROOT}/hermes-engine/destroot/Library/Frameworks/universal/hermes.xcframework/ios-arm64/dSYMs\" ]; then\necho \"Copying Hermes dSYMs to archive...\"\ncp -r \"${PODS_ROOT}/hermes-engine/destroot/Library/Frameworks/universal/hermes.xcframework/ios-arm64/dSYMs/hermes.framework.dSYM\"\n\"${DWARF_DSYM_FOLDER_PATH}\"\nfi\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -337,7 +362,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				D2A1D674F74185333AAD75D0 /* ExpoModulesProvider.swift in Sources */,
+				CEBAFFEC296ECA0EEA5AE13E /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -346,18 +371,23 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CDD6B2A9AC5BFBAD7D240578 /* Pods-SafeLoopCare.debug.xcconfig */;
+			baseConfigurationReference = 76595A0DF92794943578256B /* Pods-SafeLoopCare.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = SafeLoopCare/SafeLoopCare.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 488Z8Y695B;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
 				INFOPLIST_FILE = SafeLoopCare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SafeLoop;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -377,21 +407,23 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
-				DEVELOPMENT_TEAM = "5A2GRHHB7Q";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Debug;
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 885DBB36D0A034BC06CBBDB4 /* Pods-SafeLoopCare.release.xcconfig */;
+			baseConfigurationReference = E2EEA36BB9338B890CBE0EB7 /* Pods-SafeLoopCare.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = SafeLoopCare/SafeLoopCare.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 488Z8Y695B;
 				INFOPLIST_FILE = SafeLoopCare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SafeLoop;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -410,9 +442,6 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
-				DEVELOPMENT_TEAM = "5A2GRHHB7Q";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Release;
 		};
@@ -439,6 +468,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -446,8 +476,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = 488Z8Y695B;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -477,6 +509,7 @@
 				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
 				USE_HERMES = true;
 			};
@@ -505,6 +538,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -512,8 +546,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = YES;
+				DEVELOPMENT_TEAM = 488Z8Y695B;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -535,6 +571,8 @@
 				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
 				USE_HERMES = true;
 				VALIDATE_PRODUCT = YES;
 			};

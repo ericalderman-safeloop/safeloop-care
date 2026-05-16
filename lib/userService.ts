@@ -57,6 +57,16 @@ export interface CreateWearerData {
   seven_digit_code: string
 }
 
+export interface NotesLogEntry {
+  id: string
+  help_request_id: string
+  notes: string | null
+  changed_by_user_id: string | null
+  changed_by_display_name: string
+  changed_at: string
+  created_at: string
+}
+
 export interface HelpRequest {
   id: string
   wearer_id: string
@@ -86,6 +96,10 @@ export interface HelpRequest {
     wearer_contact_phone?: string
   }
   resolver?: {
+    id: string
+    display_name: string
+  }
+  responder?: {
     id: string
     display_name: string
   }
@@ -599,9 +613,13 @@ export const userService = {
           id,
           name,
           safeloop_account_id
+        ),
+        responder:users!responded_by(
+          id,
+          display_name
         )
       `)
-      .eq('event_status', 'active')
+      .in('event_status', ['active', 'responded_to'])
       .eq('wearer.safeloop_account_id', safeloopAccountId)
       .order('created_at', { ascending: false })
 
@@ -609,7 +627,7 @@ export const userService = {
       throw error
     }
 
-    return data || []
+    return (data || []) as unknown as HelpRequest[]
   },
 
   // Get resolved help requests (resolved and false_alarm)
@@ -652,7 +670,7 @@ export const userService = {
       throw error
     }
 
-    return data || []
+    return (data || []) as unknown as HelpRequest[]
   },
 
   // Get single help request with full details
@@ -685,6 +703,10 @@ export const userService = {
           allergies,
           emergency_notes,
           wearer_contact_phone
+        ),
+        responder:users!responded_by(
+          id,
+          display_name
         )
       `)
       .eq('id', helpRequestId)
@@ -697,7 +719,7 @@ export const userService = {
       throw error
     }
 
-    return data
+    return data as unknown as HelpRequest
   },
 
   // Update help request status
@@ -715,26 +737,66 @@ export const userService = {
     }
   },
 
+  async logNotesChange(
+    helpRequestId: string,
+    notes: string,
+    changedByUserId: string | null,
+    changedByDisplayName: string
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('help_request_notes_log')
+      .insert({
+        help_request_id: helpRequestId,
+        notes,
+        changed_by_user_id: changedByUserId,
+        changed_by_display_name: changedByDisplayName,
+        changed_at: new Date().toISOString()
+      })
+
+    if (error) {
+      throw error
+    }
+  },
+
+  async getNotesLog(helpRequestId: string): Promise<NotesLogEntry[]> {
+    const { data, error } = await supabase
+      .from('help_request_notes_log')
+      .select('*')
+      .eq('help_request_id', helpRequestId)
+      .order('changed_at', { ascending: true })
+
+    if (error) {
+      throw error
+    }
+
+    return data || []
+  },
+
   async updateHelpRequestStatus(
     helpRequestId: string,
     status: 'responded_to' | 'resolved' | 'false_alarm',
     userId: string,
     notes?: string
   ): Promise<void> {
+    if (status === 'resolved' || status === 'false_alarm') {
+      // Route through Edge Function so all caregivers receive resolution notifications
+      const { error } = await supabase.functions.invoke('resolve-help-request', {
+        body: {
+          help_request_id: helpRequestId,
+          status,
+          resolved_by_user_id: userId,
+          notes,
+        }
+      })
+      if (error) throw error
+      return
+    }
+
+    // 'responded_to' — update directly, no notification needed
     const updates: any = {
-      event_status: status
-    }
-
-    if (status === 'responded_to') {
-      updates.responded_by = userId
-      updates.responded_at = new Date().toISOString()
-    } else if (status === 'resolved' || status === 'false_alarm') {
-      updates.resolved_by = userId
-      updates.resolved_at = new Date().toISOString()
-    }
-
-    if (notes) {
-      updates.notes = notes
+      event_status: status,
+      responded_by: userId,
+      responded_at: new Date().toISOString()
     }
 
     const { error } = await supabase
@@ -742,9 +804,7 @@ export const userService = {
       .update(updates)
       .eq('id', helpRequestId)
 
-    if (error) {
-      throw error
-    }
+    if (error) throw error
   },
 
 }

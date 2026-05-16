@@ -47,13 +47,7 @@ export default function MainMenuScreen({ navigation }: MainMenuScreenProps) {
       onPress: () => navigation.navigate('Home'),
       icon: '📊'
     },
-    {
-      title: 'Settings',
-      description: 'Manage your profile and preferences',
-      onPress: () => navigation.navigate('Settings'),
-      icon: '⚙️'
-    },
-    {
+     {
       title: 'Wearers',
       description: 'Manage SafeLoop Watch users and their caregiver assignments',
       onPress: () => navigation.navigate('Wearers'),
@@ -66,10 +60,10 @@ export default function MainMenuScreen({ navigation }: MainMenuScreenProps) {
       icon: '👥'
     },
     {
-      title: 'Notifications',
-      description: 'Manage notification preferences',
-      onPress: () => Alert.alert('Coming Soon', 'Notification settings will be available soon'),
-      icon: '🔔'
+      title: 'Settings',
+      description: 'Manage your profile and preferences',
+      onPress: () => navigation.navigate('Settings'),
+      icon: '⚙️'
     },
     {
       title: 'Help & Support',
