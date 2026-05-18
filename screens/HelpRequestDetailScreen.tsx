@@ -29,6 +29,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [currentLocation, setCurrentLocation] = useState<LocationUpdate | null>(null)
   const isResolvingRef = useRef(false)
+  const notesInitializedRef = useRef(false)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingSaveRef = useRef(false)
   const notesRef = useRef('')
@@ -179,8 +180,11 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
         setHelpRequest(data)
         const formattedNotes = buildFormattedNotes(data)
         setNotes(formattedNotes)
-        if (formattedNotes !== (data.notes || '')) {
+        if (!notesInitializedRef.current && formattedNotes !== (data.notes || '')) {
+          notesInitializedRef.current = true
           await userService.updateHelpRequestNotes(data.id, formattedNotes)
+        } else {
+          notesInitializedRef.current = true
         }
       } else {
         Alert.alert('Error', 'Help request not found')
