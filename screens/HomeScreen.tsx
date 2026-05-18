@@ -40,11 +40,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   useEffect(() => {
     if (!userProfile?.safeloop_account_id) return
-
     loadHelpRequests()
+  }, [userProfile])
 
-    const subscription = supabase
-      .channel('help-requests-realtime')
+  useEffect(() => {
+    if (!userProfile?.safeloop_account_id) return
+
+    const channel = supabase
+      .channel(`help-requests-${userProfile.safeloop_account_id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'help_requests' },
@@ -52,8 +55,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       )
       .subscribe()
 
-    return () => { subscription.unsubscribe() }
-  }, [loadHelpRequests])
+    return () => { supabase.removeChannel(channel) }
+  }, [userProfile?.safeloop_account_id])
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
