@@ -96,9 +96,10 @@ export class PushNotificationService {
         return false
       }
 
-      // Save token to user profile
-      // Store in both fields for now (we'll use expo_push_token column)
-      await userService.updatePushToken(userId, token, token)
+      // Store in the platform-appropriate column
+      const apnsToken = Platform.OS === 'ios' ? token : undefined
+      const fcmToken = Platform.OS === 'android' ? token : undefined
+      await userService.updatePushToken(userId, apnsToken, fcmToken)
       console.log('✅ Expo push token saved')
 
       return true
