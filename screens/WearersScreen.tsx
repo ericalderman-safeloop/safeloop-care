@@ -186,7 +186,7 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
             style={styles.backButton} 
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.backButtonText}>‹ Back</Text>
+            <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Wearers</Text>
         </View>
@@ -238,11 +238,9 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
           wearers.map((wearer) => {
             const deviceStatus = getDeviceStatus(wearer.device)
             return (
-              <TouchableOpacity
+              <View
                 key={wearer.id}
                 style={styles.wearerCard}
-                onPress={() => navigation.navigate('WearerDetails', { wearerId: wearer.id })}
-                activeOpacity={0.7}
               >
                 <View style={styles.wearerInfo}>
                   <Text style={styles.wearerName}>{wearer.name}</Text>
@@ -271,6 +269,16 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
 
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
+                    style={styles.assignButton}
+                    onPress={(e) => {
+                      e.stopPropagation()
+                      navigation.navigate('WearerDetails', { wearerId: wearer.id })
+                    }}
+                  >
+                    <Text style={styles.assignButtonText}>Assign Caregivers</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     style={styles.editButton}
                     onPress={(e) => {
                       e.stopPropagation()
@@ -290,7 +298,7 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
                     <Text style={styles.deleteButtonText}>Remove</Text>
                   </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
+              </View>
             )
           })
         )}
@@ -317,7 +325,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: 'white',
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: '600',
   },
   title: {
@@ -433,6 +441,18 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+  },
+  assignButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  assignButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   editButton: {
     backgroundColor: '#2196F3',

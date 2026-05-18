@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   ActivityIndicator
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
-import { userService } from '../lib/userService'
+import { userService, Wearer } from '../lib/userService'
 
 interface InviteCaregiverScreenProps {
   navigation: any
@@ -19,10 +19,36 @@ interface InviteCaregiverScreenProps {
 export default function InviteCaregiverScreen({ navigation }: InviteCaregiverScreenProps) {
   const { userProfile } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [wearersLoading, setWearersLoading] = useState(true)
   const [email, setEmail] = useState('')
+  const [wearers, setWearers] = useState<Wearer[]>([])
+  const [selectedWearerIds, setSelectedWearerIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    loadWearers()
+  }, [])
+
+  const loadWearers = async () => {
+    if (!userProfile) return
+    try {
+      const data = await userService.getWearers(userProfile)
+      setWearers(data)
+    } catch (error: any) {
+      console.error('Error loading wearers:', error)
+    } finally {
+      setWearersLoading(false)
+    }
+  }
+
+  const toggleWearer = (wearerId: string) => {
+    setSelectedWearerIds(prev => {
+      const next = new Set(prev)
+      next.has(wearerId) ? next.delete(wearerId) : next.add(wearerId)
+      return next
+    })
+  }
 
   const handleSendInvitation = async () => {
-    // Validate email
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter an email address')
       return
@@ -38,23 +64,34 @@ export default function InviteCaregiverScreen({ navigation }: InviteCaregiverScr
       return
     }
 
-    // Check if user is admin
     if (userProfile.user_type !== 'caregiver_admin') {
       Alert.alert('Error', 'Only account admins can invite caregivers.')
       return
     }
 
+    if (selectedWearerIds.size === 0) {
+      Alert.alert('No Wearers Selected', 'Please select at least one wearer to assign this caregiver to.')
+      return
+    }
+
     setLoading(true)
     try {
-      await userService.inviteCaregiver(email, userProfile.safeloop_account_id)
+      await userService.inviteCaregiver(
+        email,
+        userProfile.safeloop_account_id,
+        Array.from(selectedWearerIds)
+      )
 
       Alert.alert(
         'Invitation Sent!',
-        `An invitation email will be sent to ${email}. They'll receive instructions to create their SafeLoop account and join your team.`,
+        `An invitation has been sent to ${email}. When they create their account, they'll be automatically assigned to the selected wearer${selectedWearerIds.size > 1 ? 's' : ''}.`,
         [
           {
             text: 'Send Another',
-            onPress: () => setEmail('')
+            onPress: () => {
+              setEmail('')
+              setSelectedWearerIds(new Set())
+            }
           },
           {
             text: 'Done',
@@ -71,9 +108,8 @@ export default function InviteCaregiverScreen({ navigation }: InviteCaregiverScr
     }
   }
 
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
+  const isValidEmail = (value: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
   }
 
   return (
@@ -86,6 +122,7 @@ export default function InviteCaregiverScreen({ navigation }: InviteCaregiverScr
       </View>
 
       <View style={styles.form}>
+        {/* Email */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Email Address *</Text>
           <TextInput
@@ -97,30 +134,68 @@ export default function InviteCaregiverScreen({ navigation }: InviteCaregiverScr
             autoCapitalize="none"
             autoCorrect={false}
             editable={!loading}
-            returnKeyType="send"
-            onSubmitEditing={handleSendInvitation}
+            returnKeyType="next"
           />
+        </View>
+
+        {/* Wearer selection */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Assign to Wearers *</Text>
           <Text style={styles.helperText}>
-            They'll receive an email invitation to create their account
+            Select which wearers this caregiver will monitor
           </Text>
+
+          {wearersLoading ? (
+            <ActivityIndicator style={styles.wearerLoader} color="#2196F3" />
+          ) : wearers.length === 0 ? (
+            <View style={styles.emptyWearers}>
+              <Text style={styles.emptyWearersText}>
+                No wearers registered yet. Add a wearer first before inviting caregivers.
+              </Text>
+            </View>
+          ) : (
+            wearers.map(wearer => {
+              const selected = selectedWearerIds.has(wearer.id)
+              return (
+                <TouchableOpacity
+                  key={wearer.id}
+                  style={[styles.wearerRow, selected && styles.wearerRowSelected]}
+                  onPress={() => toggleWearer(wearer.id)}
+                  disabled={loading}
+                >
+                  <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                    {selected && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <View style={styles.wearerInfo}>
+                    <Text style={[styles.wearerName, selected && styles.wearerNameSelected]}>
+                      {wearer.name}
+                    </Text>
+                    {wearer.date_of_birth && (
+                      <Text style={styles.wearerDob}>DOB: {wearer.date_of_birth}</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )
+            })
+          )}
         </View>
 
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>📧 How it works:</Text>
           <Text style={styles.infoText}>
-            1. Enter the email address of the person you want to invite{'\n'}
-            2. They'll receive an invitation email with a signup link{'\n'}
-            3. When they create their account, they'll automatically join your team{'\n'}
-            4. They'll be able to view alerts and manage wearers{'\n'}
+            1. Enter the caregiver's email address{'\n'}
+            2. Select which wearers to assign them to{'\n'}
+            3. They'll receive an email invitation to create their account{'\n'}
+            4. When they sign up, they'll be automatically assigned{'\n'}
             {'\n'}
             Note: Invitations expire after 7 days
           </Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, (loading || wearers.length === 0) && styles.buttonDisabled]}
           onPress={handleSendInvitation}
-          disabled={loading}
+          disabled={loading || wearers.length === 0}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -167,13 +242,19 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
     marginBottom: 8,
+  },
+  helperText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+    fontStyle: 'italic',
   },
   input: {
     borderWidth: 1,
@@ -183,11 +264,70 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: 'white',
   },
-  helperText: {
+  wearerLoader: {
+    marginTop: 12,
+  },
+  emptyWearers: {
+    backgroundColor: '#fff3e0',
+    borderRadius: 8,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#ff9800',
+  },
+  emptyWearersText: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 5,
-    fontStyle: 'italic',
+    color: '#e65100',
+    lineHeight: 20,
+  },
+  wearerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+  },
+  wearerRowSelected: {
+    borderColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#bdbdbd',
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#2196F3',
+    borderColor: '#2196F3',
+  },
+  checkmark: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  wearerInfo: {
+    flex: 1,
+  },
+  wearerName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  wearerNameSelected: {
+    color: '#1565C0',
+    fontWeight: '600',
+  },
+  wearerDob: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 2,
   },
   infoBox: {
     backgroundColor: '#e3f2fd',

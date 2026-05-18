@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Linking, ActivityIndicator, KeyboardAvoidingView, Platform, Modal } from 'react-native'
-import MapView, { Marker } from 'react-native-maps'
+import React, { useState, useEffect, useRef } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Linking, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native'
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 import { useAuth } from '../contexts/AuthContext'
-import { userService, HelpRequest, NotesLogEntry } from '../lib/userService'
+import { userService, HelpRequest } from '../lib/userService'
 import { supabase } from '../lib/supabase'
 
 interface HelpRequestDetailScreenProps {
@@ -26,11 +26,18 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
   const [helpRequest, setHelpRequest] = useState<HelpRequest | null>(null)
   const [loading, setLoading] = useState(true)
   const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [currentLocation, setCurrentLocation] = useState<LocationUpdate | null>(null)
-  const [notesLog, setNotesLog] = useState<NotesLogEntry[]>([])
-  const [showChangeLog, setShowChangeLog] = useState(false)
-  const [selectedLogEntry, setSelectedLogEntry] = useState<NotesLogEntry | null>(null)
+  const isResolvingRef = useRef(false)
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingSaveRef = useRef(false)
+  const notesRef = useRef('')
+
+  useEffect(() => { notesRef.current = notes }, [notes])
+
+  useEffect(() => {
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current) }
+  }, [])
 
   useEffect(() => {
     loadHelpRequest()
@@ -52,12 +59,19 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
         (payload) => {
           const newStatus = payload.new.event_status
           if (newStatus === 'resolved' || newStatus === 'false_alarm') {
+            if (isResolvingRef.current) {
+              isResolvingRef.current = false
+              return
+            }
             const message = newStatus === 'false_alarm'
               ? 'This alert was cancelled — false alarm.'
               : 'This alert has been resolved.'
             Alert.alert('Alert Resolved', message, [
               { text: 'OK', onPress: () => navigation.navigate('Home') }
             ])
+          } else if (newStatus === 'responded_to') {
+            // Another caregiver responded — refresh to switch to read-only mode
+            loadHelpRequest()
           }
         }
       )
@@ -158,15 +172,6 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
     return parts.join('\n') + '\n\n'
   }
 
-  const loadNotesLog = async (helpRequestId: string) => {
-    try {
-      const log = await userService.getNotesLog(helpRequestId)
-      setNotesLog(log)
-    } catch (error) {
-      console.error('Error loading notes log:', error)
-    }
-  }
-
   const loadHelpRequest = async () => {
     try {
       const data = await userService.getHelpRequestDetails(route.params.helpRequestId)
@@ -176,9 +181,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
         setNotes(formattedNotes)
         if (formattedNotes !== (data.notes || '')) {
           await userService.updateHelpRequestNotes(data.id, formattedNotes)
-          await userService.logNotesChange(data.id, formattedNotes, null, 'System')
         }
-        loadNotesLog(data.id)
       } else {
         Alert.alert('Error', 'Help request not found')
         navigation.goBack()
@@ -200,30 +203,39 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
     Linking.openURL(`tel:${phoneNumber}`)
   }
 
-  const handleSaveNotes = async () => {
-    if (!helpRequest?.id) return
+  const handleCaregiverNotesChange = (text: string) => {
+    const autoPrefix = notes.split('\n\n')[0] || ''
+    const updated = autoPrefix + '\n\n' + text
+    setNotes(updated)
+    setSaveStatus('idle')
+    pendingSaveRef.current = true
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = setTimeout(() => performAutoSave(updated), 3000)
+  }
 
-    setSaving(true)
+  const performAutoSave = async (notesToSave?: string) => {
+    if (!helpRequest?.id || !pendingSaveRef.current) return
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    const value = notesToSave ?? notesRef.current
+    setSaveStatus('saving')
     try {
-      await userService.updateHelpRequestNotes(helpRequest.id, notes)
-      await userService.logNotesChange(
-        helpRequest.id,
-        notes,
-        userProfile?.id || null,
-        userProfile?.display_name || 'Unknown Caregiver'
-      )
-      Alert.alert('Success', 'Notes saved successfully')
-      loadHelpRequest()
+      await userService.updateHelpRequestNotes(helpRequest.id, value)
+      pendingSaveRef.current = false
+      setSaveStatus('saved')
     } catch (error) {
-      console.error('Error saving notes:', error)
-      Alert.alert('Error', 'Failed to save notes')
-    } finally {
-      setSaving(false)
+      console.error('Error auto-saving notes:', error)
+      setSaveStatus('idle')
     }
+  }
+
+  const handleBack = async () => {
+    await performAutoSave()
+    navigation.goBack()
   }
 
   const handleResolve = async () => {
     if (!userProfile?.id || !helpRequest?.id) return
+    await performAutoSave()
 
     Alert.alert(
       'Resolve Alert',
@@ -233,16 +245,16 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
           text: 'Mark as Resolved',
           onPress: async () => {
             try {
+              isResolvingRef.current = true
               await userService.updateHelpRequestStatus(
                 helpRequest.id,
                 'resolved',
                 userProfile.id,
-                notes
+                notesRef.current
               )
-              Alert.alert('Success', 'Alert marked as resolved', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-              ])
+              navigation.navigate('Home')
             } catch (error) {
+              isResolvingRef.current = false
               Alert.alert('Error', 'Failed to update alert status')
             }
           }
@@ -251,16 +263,16 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
           text: 'Mark as False Alarm',
           onPress: async () => {
             try {
+              isResolvingRef.current = true
               await userService.updateHelpRequestStatus(
                 helpRequest.id,
                 'false_alarm',
                 userProfile.id,
-                notes
+                notesRef.current
               )
-              Alert.alert('Success', 'Alert marked as false alarm', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-              ])
+              navigation.navigate('Home')
             } catch (error) {
+              isResolvingRef.current = false
               Alert.alert('Error', 'Failed to update alert status')
             }
           }
@@ -312,9 +324,10 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
     return null
   }
 
-  const requestType = helpRequest.event_status === 'responded_to'
-    ? `👤 Being Assisted by ${helpRequest.responder?.display_name || 'a caregiver'}`
-    : helpRequest.request_type === 'fall' ? '🚨 Fall Detected' : '🆘 Help Requested'
+  const requestType = helpRequest.request_type === 'fall' ? '🚨 Fall Detected' : '🆘 Help Requested'
+
+  // Only the responder (or the first viewer of an active alert) can edit notes and resolve
+  const canEdit = helpRequest.event_status === 'active' || helpRequest.responded_by === userProfile?.id
 
   return (
     <KeyboardAvoidingView
@@ -323,7 +336,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
       keyboardVerticalOffset={0}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Help Request Details</Text>
@@ -334,19 +347,42 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
         <View style={styles.alertBanner}>
           <Text style={styles.alertType}>{requestType}</Text>
           <Text style={styles.alertTime}>{formatTime(helpRequest.created_at)}</Text>
-          <Text style={styles.requestSentence}>{buildRequestSentence(helpRequest)}</Text>
+          {helpRequest.event_status === 'responded_to' && (
+            <Text style={styles.alertResponder}>
+              👤 Being assisted by {helpRequest.responder?.display_name || 'a caregiver'}
+            </Text>
+          )}
         </View>
 
         {/* Wearer Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Wearer Information</Text>
           <View style={styles.infoCard}>
-            <Text style={styles.wearerName}>{helpRequest.wearer?.name}</Text>
-            {helpRequest.wearer?.date_of_birth && (
-              <Text style={styles.infoText}>DOB: {new Date(helpRequest.wearer.date_of_birth).toLocaleDateString()}</Text>
-            )}
-            {helpRequest.wearer?.gender && (
-              <Text style={styles.infoText}>Gender: {helpRequest.wearer.gender}</Text>
+            <View style={styles.wearerInfoRow}>
+              {helpRequest.wearer?.photo_url ? (
+                <Image source={{ uri: helpRequest.wearer.photo_url }} style={styles.wearerPhoto} />
+              ) : (
+                <View style={styles.wearerPhotoPlaceholder}>
+                  <Text style={styles.wearerPhotoInitials}>
+                    {helpRequest.wearer?.name?.trim().split(/\s+/).map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.wearerInfoText}>
+                <Text style={styles.wearerName}>{helpRequest.wearer?.name}</Text>
+                {helpRequest.wearer?.date_of_birth && (
+                  <Text style={styles.infoText}>DOB: {new Date(helpRequest.wearer.date_of_birth).toLocaleDateString()}</Text>
+                )}
+                {helpRequest.wearer?.gender && (
+                  <Text style={styles.infoText}>Gender: {helpRequest.wearer.gender}</Text>
+                )}
+              </View>
+            </View>
+            {helpRequest.wearer?.emergency_notes && (
+              <View style={styles.emergencyNotesContainer}>
+                <Text style={styles.emergencyNotesLabel}>Emergency Notes</Text>
+                <Text style={styles.emergencyNotesText}>{helpRequest.wearer.emergency_notes}</Text>
+              </View>
             )}
           </View>
         </View>
@@ -354,8 +390,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
         {/* Medical Information */}
         {(helpRequest.wearer?.medical_conditions?.length ||
           helpRequest.wearer?.medications?.length ||
-          helpRequest.wearer?.allergies?.length ||
-          helpRequest.wearer?.emergency_notes) && (
+          helpRequest.wearer?.allergies?.length) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Medical Information</Text>
             <View style={styles.infoCard}>
@@ -375,12 +410,6 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
                 <View style={styles.medicalItem}>
                   <Text style={styles.medicalLabel}>Allergies:</Text>
                   <Text style={styles.medicalText}>{helpRequest.wearer.allergies.join(', ')}</Text>
-                </View>
-              )}
-              {helpRequest.wearer?.emergency_notes && (
-                <View style={styles.medicalItem}>
-                  <Text style={styles.medicalLabel}>Emergency Notes:</Text>
-                  <Text style={styles.medicalText}>{helpRequest.wearer.emergency_notes}</Text>
                 </View>
               )}
             </View>
@@ -410,6 +439,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
             <View style={styles.mapContainer}>
               <MapView
                 style={styles.map}
+                provider={PROVIDER_GOOGLE}
                 region={{
                   latitude: currentLocation ? currentLocation.latitude : Number(helpRequest.location_latitude),
                   longitude: currentLocation ? currentLocation.longitude : Number(helpRequest.location_longitude),
@@ -462,41 +492,77 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
         {/* Assistance Notes */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Assistance Notes</Text>
+
+          {!canEdit && helpRequest.event_status === 'responded_to' && (
+            <View style={styles.readOnlyBanner}>
+              <Text style={styles.readOnlyText}>
+                🔒 {helpRequest.responder?.display_name || 'A caregiver'} is handling this alert. Notes are read-only.
+              </Text>
+            </View>
+          )}
+
+          {/* Auto-generated log entries */}
+          {(() => {
+            const autoPrefix = notes.split('\n\n')[0] || ''
+            const autoLines = autoPrefix.split('\n').filter(l => l.trim())
+            const entries: { type: string; text: string; url?: string }[] = []
+            let i = 0
+            while (i < autoLines.length) {
+              const line = autoLines[i]
+              if (line.startsWith('Wearer located at:')) {
+                const nextLine = autoLines[i + 1]
+                const url = nextLine?.startsWith('https://') ? nextLine : undefined
+                entries.push({ type: 'location', text: line.replace('Wearer located at: ', ''), url })
+                i += url ? 2 : 1
+              } else if (line.startsWith('https://')) {
+                entries.push({ type: 'link', text: 'View on Google Maps', url: line })
+                i++
+              } else if (line.includes('responded to the help request')) {
+                entries.push({ type: 'responder', text: line })
+                i++
+              } else {
+                entries.push({ type: 'event', text: line })
+                i++
+              }
+            }
+            return entries.filter(e => e.type !== 'location' && e.type !== 'link').map((entry, idx) => (
+              <View key={idx} style={[styles.logEntry, styles[`logEntry_${entry.type}` as keyof typeof styles] as any]}>
+                <Text style={styles.logEntryIcon}>
+                  {entry.type === 'event' ? '🚨' : '👤'}
+                </Text>
+                <View style={styles.logEntryBody}>
+                  <Text style={styles.logEntryText}>{entry.text}</Text>
+                </View>
+              </View>
+            ))
+          })()}
+
+          {/* Caregiver freeform notes */}
           <View style={styles.infoCard}>
+            <View style={styles.caregiverNotesHeader}>
+              <Text style={styles.caregiverNotesLabel}>Caregiver Notes</Text>
+              {canEdit && saveStatus === 'saving' && (
+                <Text style={styles.saveStatusText}>Saving...</Text>
+              )}
+              {canEdit && saveStatus === 'saved' && (
+                <Text style={[styles.saveStatusText, styles.saveStatusSaved]}>✓ Saved</Text>
+              )}
+            </View>
             <TextInput
-              style={styles.notesInput}
-              value={notes}
-              onChangeText={setNotes}
+              style={[styles.notesInput, !canEdit && styles.notesInputReadOnly]}
+              value={notes.split('\n\n').slice(1).join('\n\n')}
+              onChangeText={canEdit ? handleCaregiverNotesChange : undefined}
               placeholder="Document the assistance provided, situation details, or follow-up actions..."
               multiline
-              numberOfLines={6}
+              numberOfLines={4}
               textAlignVertical="top"
+              editable={canEdit}
             />
-            <TouchableOpacity
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-              onPress={handleSaveNotes}
-              disabled={saving}
-            >
-              <Text style={styles.saveButtonText}>
-                {saving ? 'Saving...' : 'Save Notes'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.changeLogButton}
-              onPress={() => {
-                setSelectedLogEntry(null)
-                setShowChangeLog(true)
-              }}
-            >
-              <Text style={styles.changeLogButtonText}>
-                Change Log{notesLog.length > 0 ? ` (${notesLog.length})` : ''}
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Resolve Button */}
-        {(helpRequest.event_status === 'active' || helpRequest.event_status === 'responded_to') && (
+        {/* Resolve Button — only for the responder */}
+        {canEdit && (helpRequest.event_status === 'active' || helpRequest.event_status === 'responded_to') && (
           <TouchableOpacity style={styles.resolveButton} onPress={handleResolve}>
             <Text style={styles.resolveButtonText}>Resolve Alert</Text>
           </TouchableOpacity>
@@ -516,81 +582,6 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
         )}
       </ScrollView>
 
-      {/* Change Log Modal */}
-      <Modal
-        visible={showChangeLog}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => {
-          if (selectedLogEntry) {
-            setSelectedLogEntry(null)
-          } else {
-            setShowChangeLog(false)
-          }
-        }}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {selectedLogEntry ? 'Version Details' : 'Change Log'}
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                if (selectedLogEntry) {
-                  setSelectedLogEntry(null)
-                } else {
-                  setShowChangeLog(false)
-                }
-              }}
-            >
-              <Text style={styles.modalDismiss}>
-                {selectedLogEntry ? '← Back' : 'Close'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {selectedLogEntry ? (
-            <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalContentPadded}>
-              <View style={styles.logVersionMeta}>
-                <Text style={styles.logVersionAuthor}>{selectedLogEntry.changed_by_display_name}</Text>
-                <Text style={styles.logVersionTime}>{formatTime(selectedLogEntry.changed_at)}</Text>
-              </View>
-              <View style={styles.logVersionNotes}>
-                <Text style={styles.logVersionNotesText}>
-                  {selectedLogEntry.notes || '(empty)'}
-                </Text>
-              </View>
-            </ScrollView>
-          ) : (
-            <ScrollView style={styles.modalContent}>
-              {notesLog.length === 0 ? (
-                <View style={styles.emptyLogContainer}>
-                  <Text style={styles.emptyLogText}>No changes recorded yet</Text>
-                </View>
-              ) : (
-                notesLog.map((entry, index) => (
-                  <TouchableOpacity
-                    key={entry.id}
-                    style={styles.logEntryRow}
-                    onPress={() => setSelectedLogEntry(entry)}
-                  >
-                    <View style={styles.logEntryInfo}>
-                      <Text style={styles.logEntryAuthor}>
-                        {entry.changed_by_display_name}
-                        {index === 0 && (
-                          <Text style={styles.logEntryOriginal}> · original</Text>
-                        )}
-                      </Text>
-                      <Text style={styles.logEntryTime}>{formatTime(entry.changed_at)}</Text>
-                    </View>
-                    <Text style={styles.logEntryChevron}>›</Text>
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-          )}
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
   )
 }
@@ -650,10 +641,10 @@ const styles = StyleSheet.create({
     color: '#888',
     marginBottom: 8,
   },
-  requestSentence: {
-    fontSize: 15,
-    color: '#555',
-    fontStyle: 'italic',
+  alertResponder: {
+    fontSize: 14,
+    color: '#e65100',
+    marginTop: 4,
   },
   section: {
     marginBottom: 20,
@@ -674,16 +665,63 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  wearerInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  wearerPhoto: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginRight: 14,
+    backgroundColor: '#e0e0e0',
+  },
+  wearerPhotoPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#e3f2fd',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  wearerPhotoInitials: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2196F3',
+  },
+  wearerInfoText: {
+    flex: 1,
+  },
   wearerName: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   infoText: {
     fontSize: 16,
     color: '#555',
     marginBottom: 4,
+  },
+  emergencyNotesContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  emergencyNotesLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#e65100',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  emergencyNotesText: {
+    fontSize: 15,
+    color: '#333',
+    lineHeight: 22,
   },
   medicalItem: {
     marginBottom: 12,
@@ -759,38 +797,101 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  logEntry: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  logEntry_event: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#ff9800',
+    backgroundColor: '#fff8f0',
+  },
+  logEntry_location: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#4CAF50',
+    backgroundColor: '#f1f8f1',
+  },
+  logEntry_responder: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#2196F3',
+    backgroundColor: '#f0f6ff',
+  },
+  logEntry_link: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#9e9e9e',
+  },
+  logEntryIcon: {
+    fontSize: 18,
+    marginRight: 10,
+    marginTop: 1,
+  },
+  logEntryBody: {
+    flex: 1,
+  },
+  logEntryText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+  },
+  logEntryLink: {
+    fontSize: 13,
+    color: '#2196F3',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  caregiverNotesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  caregiverNotesLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  saveStatusText: {
+    fontSize: 12,
+    color: '#999',
+    marginLeft: 8,
+  },
+  saveStatusSaved: {
+    color: '#4CAF50',
+  },
+  readOnlyBanner: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: '#bdbdbd',
+  },
+  readOnlyText: {
+    fontSize: 13,
+    color: '#757575',
+  },
   notesInput: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
-    minHeight: 120,
+    fontSize: 15,
+    minHeight: 90,
     marginBottom: 12,
   },
-  saveButton: {
-    backgroundColor: '#2196F3',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  changeLogButton: {
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  changeLogButtonText: {
-    fontSize: 14,
-    color: '#2196F3',
-    textDecorationLine: 'underline',
+  notesInputReadOnly: {
+    backgroundColor: '#fafafa',
+    color: '#555',
+    borderColor: '#eeeeee',
   },
   resolveButton: {
     backgroundColor: '#4CAF50',
@@ -820,104 +921,5 @@ const styles = StyleSheet.create({
   resolvedTime: {
     fontSize: 14,
     color: '#666',
-  },
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  modalHeader: {
-    backgroundColor: '#ff9800',
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  modalDismiss: {
-    fontSize: 16,
-    color: 'white',
-    fontWeight: '600',
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalContentPadded: {
-    padding: 20,
-  },
-  logEntryRow: {
-    backgroundColor: 'white',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0e0e0',
-  },
-  logEntryInfo: {
-    flex: 1,
-  },
-  logEntryAuthor: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 2,
-  },
-  logEntryOriginal: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#888',
-  },
-  logEntryTime: {
-    fontSize: 13,
-    color: '#888',
-  },
-  logEntryChevron: {
-    fontSize: 22,
-    color: '#bbb',
-    marginLeft: 12,
-  },
-  emptyLogContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyLogText: {
-    fontSize: 16,
-    color: '#888',
-  },
-  logVersionMeta: {
-    marginBottom: 16,
-  },
-  logVersionAuthor: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  logVersionTime: {
-    fontSize: 14,
-    color: '#888',
-  },
-  logVersionNotes: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  logVersionNotesText: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 24,
   },
 })

@@ -1,29 +1,69 @@
-import React, { useState } from 'react'
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  Alert, 
+import React, { useState, useEffect } from 'react'
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
   ScrollView,
-  ActivityIndicator 
+  ActivityIndicator
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, CreateWearerData } from '../lib/userService'
+import WearerPhotoPicker from '../components/WearerPhotoPicker'
 
 interface RegisterWearerScreenProps {
   navigation: any
 }
 
+interface CaregiverOption {
+  id: string
+  display_name: string
+  email: string
+}
+
 export default function RegisterWearerScreen({ navigation }: RegisterWearerScreenProps) {
   const { userProfile } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [caregiversLoading, setCaregiversLoading] = useState(true)
+  const [photoUri, setPhotoUri] = useState<string | null>(null)
   const [formData, setFormData] = useState<CreateWearerData>({
     name: '',
     date_of_birth: '',
     seven_digit_code: '',
+    wearer_contact_phone: '',
   })
+  const [caregivers, setCaregivers] = useState<CaregiverOption[]>([])
+  const [selectedCaregiverIds, setSelectedCaregiverIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    loadCaregivers()
+  }, [])
+
+  const loadCaregivers = async () => {
+    if (!userProfile) return
+    try {
+      const data = await userService.getCaregivers(userProfile)
+      setCaregivers(data.map((c: any) => ({
+        id: c.id,
+        display_name: c.display_name || c.email,
+        email: c.email,
+      })))
+    } catch (error: any) {
+      console.error('Error loading caregivers:', error)
+    } finally {
+      setCaregiversLoading(false)
+    }
+  }
+
+  const toggleCaregiver = (caregiverId: string) => {
+    setSelectedCaregiverIds(prev => {
+      const next = new Set(prev)
+      next.has(caregiverId) ? next.delete(caregiverId) : next.add(caregiverId)
+      return next
+    })
+  }
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -56,18 +96,51 @@ export default function RegisterWearerScreen({ navigation }: RegisterWearerScree
       return
     }
 
+    if (caregivers.length > 0 && selectedCaregiverIds.size === 0) {
+      Alert.alert(
+        'No Caregivers Selected',
+        'Are you sure you want to register this wearer without assigning any caregivers? You can assign them later from the Wearer Details screen.',
+        [
+          { text: 'Go Back', style: 'cancel' },
+          { text: 'Continue Anyway', onPress: () => performSave() }
+        ]
+      )
+      return
+    }
+
+    await performSave()
+  }
+
+  const performSave = async () => {
     setLoading(true)
     try {
-      const newWearer = await userService.createWearer(userProfile, formData)
+      const newWearer = await userService.createWearer(userProfile!, formData)
+
+      // Upload photo if selected
+      if (photoUri) {
+        try {
+          const photoUrl = await userService.uploadWearerPhoto(newWearer.id, photoUri)
+          await userService.updateWearer(newWearer.id, { photo_url: photoUrl })
+        } catch (photoError) {
+          console.error('Failed to upload photo:', photoError)
+          // Non-fatal — wearer is created, photo just didn't upload
+        }
+      }
+
+      // Assign selected caregivers
+      if (selectedCaregiverIds.size > 0) {
+        await Promise.all(
+          Array.from(selectedCaregiverIds).map(caregiverId =>
+            userService.assignCaregiverToWearer(caregiverId, newWearer.id)
+          )
+        )
+      }
+
+      const assignedCount = selectedCaregiverIds.size
       Alert.alert(
-        'Success', 
-        `${newWearer.name} has been registered successfully! Their device will be activated once they launch the SafeLoop Watch app.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack()
-          }
-        ]
+        'Wearer Registered!',
+        `${newWearer.name} has been registered successfully${assignedCount > 0 ? ` and assigned to ${assignedCount} caregiver${assignedCount > 1 ? 's' : ''}` : ''}. Their device will be activated once they launch the SafeLoop Watch app.`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
       )
     } catch (error: any) {
       console.error('Error creating wearer:', error)
@@ -78,15 +151,12 @@ export default function RegisterWearerScreen({ navigation }: RegisterWearerScree
   }
 
   const isValidDate = (dateString: string): boolean => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      return false
-    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false
     const date = new Date(dateString)
     return date.toString() !== 'Invalid Date' && date <= new Date()
   }
 
   const formatDeviceCode = (input: string) => {
-    // Remove non-digit characters and limit to 7 digits
     const digits = input.replace(/\D/g, '').slice(0, 7)
     setFormData({ ...formData, seven_digit_code: digits })
   }
@@ -94,11 +164,8 @@ export default function RegisterWearerScreen({ navigation }: RegisterWearerScree
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹ Back</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Register New Wearer</Text>
       </View>
@@ -109,6 +176,15 @@ export default function RegisterWearerScreen({ navigation }: RegisterWearerScree
         </Text>
 
         <View style={styles.form}>
+          {/* Photo */}
+          <WearerPhotoPicker
+            photoUri={photoUri}
+            wearerName={formData.name}
+            onPhotoChange={setPhotoUri}
+            disabled={loading}
+          />
+
+          {/* Name */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Full Name *</Text>
             <TextInput
@@ -121,6 +197,7 @@ export default function RegisterWearerScreen({ navigation }: RegisterWearerScree
             />
           </View>
 
+          {/* Date of Birth */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Date of Birth</Text>
             <TextInput
@@ -131,11 +208,26 @@ export default function RegisterWearerScreen({ navigation }: RegisterWearerScree
               keyboardType="numeric"
               returnKeyType="next"
             />
+            <Text style={styles.helperText}>Optional. Format: YYYY-MM-DD (e.g., 1950-12-25)</Text>
+          </View>
+
+          {/* Phone Number */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Phone Number</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.wearer_contact_phone}
+              onChangeText={(text) => setFormData({ ...formData, wearer_contact_phone: text })}
+              placeholder="+1 (555) 000-0000 (optional)"
+              keyboardType="phone-pad"
+              returnKeyType="next"
+            />
             <Text style={styles.helperText}>
-              Optional. Format: YYYY-MM-DD (e.g., 1950-12-25)
+              Wearer's contact number for caregivers to call in an emergency
             </Text>
           </View>
 
+          {/* Device Code */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Device 7-Digit Code *</Text>
             <TextInput
@@ -153,6 +245,48 @@ export default function RegisterWearerScreen({ navigation }: RegisterWearerScree
             </Text>
           </View>
 
+          {/* Caregiver Assignment */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Assign Caregivers</Text>
+            <Text style={styles.helperText}>
+              Select caregivers who should monitor this wearer
+            </Text>
+
+            {caregiversLoading ? (
+              <ActivityIndicator style={styles.caregiverLoader} color="#2196F3" />
+            ) : caregivers.length === 0 ? (
+              <View style={styles.emptyCaregivers}>
+                <Text style={styles.emptyCaregiversText}>
+                  No caregivers in your account yet. You can assign caregivers later from the Wearer Details screen.
+                </Text>
+              </View>
+            ) : (
+              caregivers.map(caregiver => {
+                const selected = selectedCaregiverIds.has(caregiver.id)
+                return (
+                  <TouchableOpacity
+                    key={caregiver.id}
+                    style={[styles.caregiverRow, selected && styles.caregiverRowSelected]}
+                    onPress={() => toggleCaregiver(caregiver.id)}
+                    disabled={loading}
+                  >
+                    <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                      {selected && <Text style={styles.checkmark}>✓</Text>}
+                    </View>
+                    <View style={styles.caregiverInfo}>
+                      <Text style={[styles.caregiverName, selected && styles.caregiverNameSelected]}>
+                        {caregiver.display_name}
+                      </Text>
+                      {caregiver.display_name !== caregiver.email && (
+                        <Text style={styles.caregiverEmail}>{caregiver.email}</Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )
+              })
+            )}
+          </View>
+
           <View style={styles.infoBox}>
             <Text style={styles.infoTitle}>📱 Finding the Device Code</Text>
             <Text style={styles.infoText}>
@@ -166,8 +300,8 @@ export default function RegisterWearerScreen({ navigation }: RegisterWearerScree
       </ScrollView>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={[styles.saveButton, loading && styles.saveButtonDisabled]} 
+        <TouchableOpacity
+          style={[styles.saveButton, loading && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={loading}
         >
@@ -200,7 +334,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: 'white',
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: '600',
   },
   title: {
@@ -223,7 +357,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
     fontSize: 16,
@@ -251,13 +385,79 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontStyle: 'italic',
   },
+  caregiverLoader: {
+    marginTop: 12,
+  },
+  emptyCaregivers: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  emptyCaregiversText: {
+    fontSize: 14,
+    color: '#888',
+    lineHeight: 20,
+  },
+  caregiverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+  },
+  caregiverRowSelected: {
+    borderColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#bdbdbd',
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#2196F3',
+    borderColor: '#2196F3',
+  },
+  checkmark: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  caregiverInfo: {
+    flex: 1,
+  },
+  caregiverName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  caregiverNameSelected: {
+    color: '#1565C0',
+    fontWeight: '600',
+  },
+  caregiverEmail: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 2,
+  },
   infoBox: {
     backgroundColor: '#e3f2fd',
     padding: 16,
     borderRadius: 8,
     borderLeftWidth: 4,
     borderLeftColor: '#2196F3',
-    marginTop: 20,
+    marginTop: 4,
+    marginBottom: 20,
   },
   infoTitle: {
     fontSize: 16,

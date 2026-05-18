@@ -50,7 +50,7 @@ export async function signInWithGoogle() {
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: userInfo.data.idToken,
-        nonce: userInfo.data.serverAuthCode,
+        nonce: userInfo.data.serverAuthCode ?? undefined,
       })
       if (error) throw error
       return data

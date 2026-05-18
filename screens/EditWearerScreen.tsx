@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, Wearer } from '../lib/userService'
+import WearerPhotoPicker from '../components/WearerPhotoPicker'
 
 interface EditWearerScreenProps {
   navigation: any
@@ -33,6 +34,7 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
     wearer_contact_phone: '',
     emergency_notes: '',
   })
+  const [photoUri, setPhotoUri] = useState<string | null>(null)
 
   const loadWearer = async () => {
     try {
@@ -44,6 +46,7 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
         wearer_contact_phone: wearerData.wearer_contact_phone || '',
         emergency_notes: wearerData.emergency_notes || '',
       })
+      setPhotoUri(wearerData.photo_url || null)
     } catch (error) {
       console.error('Error loading wearer:', error)
       Alert.alert('Error', 'Failed to load wearer information.')
@@ -66,11 +69,22 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
 
     setSaving(true)
     try {
+      let resolvedPhotoUrl = wearer?.photo_url || undefined
+
+      // Upload new photo if the URI changed from the stored URL
+      if (photoUri && photoUri !== wearer?.photo_url) {
+        resolvedPhotoUrl = await userService.uploadWearerPhoto(wearerId, photoUri)
+        console.log('Uploaded photo URL:', resolvedPhotoUrl)
+      } else if (!photoUri && wearer?.photo_url) {
+        resolvedPhotoUrl = undefined
+      }
+
       await userService.updateWearer(wearerId, {
         name: formData.name,
         date_of_birth: formData.date_of_birth || undefined,
         wearer_contact_phone: formData.wearer_contact_phone || undefined,
         emergency_notes: formData.emergency_notes || undefined,
+        photo_url: resolvedPhotoUrl || null,
       })
       
       Alert.alert(
@@ -104,10 +118,9 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
     return (
       formData.name !== (wearer.name || '') ||
       formData.date_of_birth !== (wearer.date_of_birth || '') ||
-      formData.emergency_contact_name !== (wearer.emergency_contact_name || '') ||
-      formData.emergency_contact_phone !== (wearer.emergency_contact_phone || '') ||
-      formData.emergency_contact_relationship !== (wearer.emergency_contact_relationship || '') ||
-      formData.emergency_notes !== (wearer.emergency_notes || '')
+      formData.wearer_contact_phone !== (wearer.wearer_contact_phone || '') ||
+      formData.emergency_notes !== (wearer.emergency_notes || '') ||
+      photoUri !== (wearer.photo_url || null)
     )
   }
 
@@ -123,7 +136,7 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
             style={styles.backButton} 
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.backButtonText}>‹ Back</Text>
+            <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Edit Wearer</Text>
         </View>
@@ -142,7 +155,7 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>‹ Back</Text>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Edit Wearer</Text>
       </View>
@@ -164,6 +177,13 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
         )}
 
         <View style={styles.form}>
+          <WearerPhotoPicker
+            photoUri={photoUri}
+            wearerName={formData.name}
+            onPhotoChange={setPhotoUri}
+            disabled={saving}
+          />
+
           <Text style={styles.sectionTitle}>Basic Information</Text>
           
           <View style={styles.inputGroup}>
@@ -265,7 +285,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: 'white',
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: '600',
   },
   title: {

@@ -102,6 +102,34 @@ export default function CaregiversScreen({ navigation }: CaregiversScreenProps) 
     )
   }
 
+  const handleCancelInvitation = async (invitation: PendingInvitation) => {
+    if (!isAdmin) {
+      Alert.alert('Error', 'Only account admins can cancel invitations.')
+      return
+    }
+
+    Alert.alert(
+      'Cancel Invitation',
+      `Cancel the invitation sent to ${invitation.email}? They will no longer be able to use it.`,
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Cancel Invitation',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await userService.cancelInvitation(invitation.id)
+              await loadCaregivers()
+            } catch (error: any) {
+              console.error('Error cancelling invitation:', error)
+              Alert.alert('Error', error.message || 'Failed to cancel invitation.')
+            }
+          }
+        }
+      ]
+    )
+  }
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString()
@@ -143,7 +171,7 @@ export default function CaregiversScreen({ navigation }: CaregiversScreenProps) 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>‹ Back</Text>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Caregivers</Text>
       </View>
@@ -237,12 +265,20 @@ export default function CaregiversScreen({ navigation }: CaregiversScreenProps) 
                     <View style={[styles.statusBadge, { backgroundColor: status.color }]}>
                       <Text style={styles.statusText}>{status.text}</Text>
                     </View>
-                    <TouchableOpacity
-                      style={styles.resendButton}
-                      onPress={() => handleResendInvitation(invitation)}
-                    >
-                      <Text style={styles.resendButtonText}>Resend</Text>
-                    </TouchableOpacity>
+                    <View style={styles.invitationButtons}>
+                      <TouchableOpacity
+                        style={styles.resendButton}
+                        onPress={() => handleResendInvitation(invitation)}
+                      >
+                        <Text style={styles.resendButtonText}>Resend</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.cancelInviteButton}
+                        onPress={() => handleCancelInvitation(invitation)}
+                      >
+                        <Text style={styles.cancelInviteButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               )
@@ -274,18 +310,20 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
     backgroundColor: '#2196F3',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   backButton: {
-    padding: 10,
-    marginRight: 10,
+    marginRight: 15,
   },
   backButtonText: {
     color: 'white',
-    fontSize: 28,
-    fontWeight: '300',
+    fontSize: 16,
+    fontWeight: '600',
   },
   title: {
     fontSize: 28,
@@ -434,15 +472,32 @@ const styles = StyleSheet.create({
   invitationActions: {
     alignItems: 'flex-end',
   },
-  resendButton: {
+  invitationButtons: {
+    flexDirection: 'row',
+    gap: 8,
     marginTop: 8,
-    paddingHorizontal: 16,
+  },
+  resendButton: {
+    paddingHorizontal: 14,
     paddingVertical: 6,
     backgroundColor: '#2196F3',
     borderRadius: 6,
   },
   resendButtonText: {
     color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  cancelInviteButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: 'white',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#f44336',
+  },
+  cancelInviteButtonText: {
+    color: '#f44336',
     fontSize: 14,
     fontWeight: '500',
   },

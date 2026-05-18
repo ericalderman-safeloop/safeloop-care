@@ -45,33 +45,38 @@ export default function MainMenuScreen({ navigation }: MainMenuScreenProps) {
       title: 'Dashboard',
       description: 'View emergency alerts and status',
       onPress: () => navigation.navigate('Home'),
-      icon: '📊'
+      icon: '📊',
+      adminOnly: false
     },
-     {
+    {
       title: 'Wearers',
       description: 'Manage SafeLoop Watch users and their caregiver assignments',
       onPress: () => navigation.navigate('Wearers'),
-      icon: '⌚'
+      icon: '⌚',
+      adminOnly: true
     },
     {
       title: 'Caregivers',
-      description: isAdmin ? 'Manage your care team and invitations' : 'View your care team members',
+      description: 'Manage your care team and invitations',
       onPress: () => navigation.navigate('Caregivers'),
-      icon: '👥'
+      icon: '👥',
+      adminOnly: true
     },
     {
       title: 'Settings',
       description: 'Manage your profile and preferences',
       onPress: () => navigation.navigate('Settings'),
-      icon: '⚙️'
+      icon: '⚙️',
+      adminOnly: false
     },
     {
       title: 'Help & Support',
       description: 'Get help and contact support',
       onPress: () => Alert.alert('Coming Soon', 'Help and support section will be available soon'),
-      icon: '❓'
+      icon: '❓',
+      adminOnly: false
     }
-  ]
+  ].filter(item => !item.adminOnly || isAdmin)
 
   return (
     <ScrollView style={styles.container}>

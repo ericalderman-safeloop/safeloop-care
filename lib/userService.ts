@@ -40,6 +40,7 @@ export interface Wearer {
   allergies?: string[]
   emergency_notes?: string
   wearer_contact_phone?: string
+  photo_url?: string
   created_at: string
   updated_at: string
   device?: {
@@ -55,6 +56,8 @@ export interface CreateWearerData {
   name: string
   date_of_birth?: string
   seven_digit_code: string
+  wearer_contact_phone?: string
+  photo_url?: string
 }
 
 export interface NotesLogEntry {
@@ -94,6 +97,7 @@ export interface HelpRequest {
     allergies?: string[]
     emergency_notes?: string
     wearer_contact_phone?: string
+    photo_url?: string
   }
   resolver?: {
     id: string
@@ -123,6 +127,30 @@ export const userService = {
     }
 
     return data
+  },
+
+  // Check for outstanding invitation by token (from deep link)
+  async checkInvitationByToken(token: string): Promise<InvitationInfo | null> {
+    const { data, error } = await supabase
+      .from('caregiver_invitations')
+      .select('id, invitation_token, safeloop_account_id, invited_by')
+      .eq('invitation_token', token)
+      .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') return null
+      throw error
+    }
+
+    return {
+      invitation_id: data.id,
+      invitation_token: data.invitation_token,
+      safeloop_account_id: data.safeloop_account_id,
+      invited_by: data.invited_by,
+      user_type: 'caregiver'
+    }
   },
 
   // Check for outstanding invitation for this email
@@ -160,7 +188,7 @@ export const userService = {
     invitationInfo: InvitationInfo
   ): Promise<UserProfile> {
     // Use the existing accept_caregiver_invitation database function
-    const { data: userId, error: acceptError } = await supabase
+    const { error: acceptError } = await supabase
       .rpc('accept_caregiver_invitation', {
         p_invitation_token: invitationInfo.invitation_token,
         p_email: email,
@@ -189,7 +217,7 @@ export const userService = {
   // Create user profile for new admin (no invitation)
   async createAdminUserProfile(authUserId: string, email: string, profileData: CreateUserProfileData): Promise<UserProfile> {
     // Use the existing create_safeloop_account database function
-    const { data: accountId, error: accountError } = await supabase
+    const { error: accountError } = await supabase
       .rpc('create_safeloop_account', {
         p_account_name: `${profileData.display_name}'s SafeLoop Account`,
         p_admin_email: email,
@@ -278,11 +306,12 @@ export const userService = {
   },
 
   // Invite a caregiver to join the account
-  async inviteCaregiver(email: string, safeloopAccountId: string): Promise<void> {
+  async inviteCaregiver(email: string, safeloopAccountId: string, wearerIds: string[] = []): Promise<void> {
     const { data, error } = await supabase.functions.invoke('invite-caregiver', {
       body: {
         email: email,
-        safeloop_account_id: safeloopAccountId
+        safeloop_account_id: safeloopAccountId,
+        wearer_ids: wearerIds
       }
     })
 
@@ -312,6 +341,17 @@ export const userService = {
     }
 
     return data || []
+  },
+
+  // Cancel a pending invitation
+  async cancelInvitation(invitationId: string): Promise<void> {
+    const { error } = await supabase
+      .from('caregiver_invitations')
+      .delete()
+      .eq('id', invitationId)
+      .eq('status', 'pending')
+
+    if (error) throw error
   },
 
   // Get pending invitations for the user's account
@@ -387,7 +427,8 @@ export const userService = {
       .insert({
         safeloop_account_id: userProfile.safeloop_account_id,
         name: wearerData.name,
-        date_of_birth: wearerData.date_of_birth || null
+        date_of_birth: wearerData.date_of_birth || null,
+        wearer_contact_phone: wearerData.wearer_contact_phone || null
       })
       .select()
       .single()
@@ -413,7 +454,7 @@ export const userService = {
       const { error: deviceError } = await supabase
         .from('devices')
         .insert({
-          device_uuid: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary UUID
+          device_uuid: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`, // Temporary UUID
           seven_digit_code: wearerData.seven_digit_code,
           wearer_id: wearer.id,
           is_verified: false // This will show as "Pending" until watch verification
@@ -450,7 +491,7 @@ export const userService = {
 
   // Update wearer information
   async updateWearer(wearerId: string, updates: Partial<Omit<Wearer, 'id' | 'safeloop_account_id' | 'created_at' | 'updated_at' | 'device'>>): Promise<Wearer> {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('wearers')
       .update({
         ...updates,
@@ -589,6 +630,136 @@ export const userService = {
     }
   },
 
+  // Upload a wearer headshot to storage and return the public URL
+  async uploadWearerPhoto(wearerId: string, imageUri: string): Promise<string> {
+    const fileName = `${wearerId}/headshot.jpg`
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!
+
+    // FormData with a file URI is the only reliable upload method in React Native —
+    // both fetch().blob() and XHR responseType=blob produce empty files on iOS.
+    const formData = new FormData()
+    formData.append('file', { uri: imageUri, type: 'image/jpeg', name: 'headshot.jpg' } as any)
+
+    const { data: { session } } = await supabase.auth.getSession()
+
+    const response = await fetch(
+      `${supabaseUrl}/storage/v1/object/wearer-photos/${fileName}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+          'x-upsert': 'true',
+        },
+        body: formData,
+      }
+    )
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Photo upload failed: ${text}`)
+    }
+
+    return `${supabaseUrl}/storage/v1/object/public/wearer-photos/${fileName}?t=${Date.now()}`
+  },
+
+  // Get active help requests for a specific caregiver (only wearers they're assigned to)
+  async getActiveHelpRequestsForCaregiver(caregiverUserId: string): Promise<HelpRequest[]> {
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from('caregiver_wearer_assignments')
+      .select('wearer_id')
+      .eq('caregiver_user_id', caregiverUserId)
+
+    if (assignmentsError) throw assignmentsError
+
+    const wearerIds = (assignments || []).map((a: any) => a.wearer_id)
+    if (wearerIds.length === 0) return []
+
+    const { data, error } = await supabase
+      .from('help_requests')
+      .select(`
+        id,
+        wearer_id,
+        device_id,
+        request_type,
+        event_status,
+        fall_response,
+        location_latitude,
+        location_longitude,
+        location_accuracy,
+        location_timestamp,
+        responded_by,
+        responded_at,
+        resolved_at,
+        notes,
+        created_at,
+        wearer:wearers!inner(
+          id,
+          name,
+          safeloop_account_id
+        ),
+        responder:users!responded_by(
+          id,
+          display_name
+        )
+      `)
+      .in('event_status', ['active', 'responded_to'])
+      .in('wearer_id', wearerIds)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return (data || []) as unknown as HelpRequest[]
+  },
+
+  // Get resolved help requests for a specific caregiver (only wearers they're assigned to)
+  async getResolvedHelpRequestsForCaregiver(caregiverUserId: string, limit: number = 50): Promise<HelpRequest[]> {
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from('caregiver_wearer_assignments')
+      .select('wearer_id')
+      .eq('caregiver_user_id', caregiverUserId)
+
+    if (assignmentsError) throw assignmentsError
+
+    const wearerIds = (assignments || []).map((a: any) => a.wearer_id)
+    if (wearerIds.length === 0) return []
+
+    const { data, error } = await supabase
+      .from('help_requests')
+      .select(`
+        id,
+        wearer_id,
+        device_id,
+        request_type,
+        event_status,
+        fall_response,
+        location_latitude,
+        location_longitude,
+        location_accuracy,
+        location_timestamp,
+        responded_by,
+        responded_at,
+        resolved_by,
+        resolved_at,
+        notes,
+        created_at,
+        wearer:wearers!inner(
+          id,
+          name,
+          safeloop_account_id
+        ),
+        resolver:users!resolved_by(
+          id,
+          display_name
+        )
+      `)
+      .in('event_status', ['resolved', 'false_alarm'])
+      .in('wearer_id', wearerIds)
+      .order('resolved_at', { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+    return (data || []) as unknown as HelpRequest[]
+  },
+
   // Get active help requests for caregivers assigned to specific wearers
   async getActiveHelpRequests(safeloopAccountId: string): Promise<HelpRequest[]> {
     const { data, error } = await supabase
@@ -702,7 +873,8 @@ export const userService = {
           medications,
           allergies,
           emergency_notes,
-          wearer_contact_phone
+          wearer_contact_phone,
+          photo_url
         ),
         responder:users!responded_by(
           id,

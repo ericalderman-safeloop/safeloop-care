@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native'
+import React, { useState, useEffect, useCallback } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Linking } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { signOut } from '../lib/auth'
 import { userService, HelpRequest } from '../lib/userService'
@@ -16,31 +16,18 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [resolvedRequests, setResolvedRequests] = useState<HelpRequest[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (userProfile?.safeloop_account_id) {
-      loadHelpRequests()
-      setupRealtimeSubscription()
-    }
-  }, [userProfile?.safeloop_account_id])
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      // Reload help requests when screen comes into focus
-      if (userProfile?.safeloop_account_id) {
-        loadHelpRequests()
-      }
-    })
-
-    return unsubscribe
-  }, [navigation, userProfile?.safeloop_account_id])
-
-  const loadHelpRequests = async () => {
+  const loadHelpRequests = useCallback(async () => {
     if (!userProfile?.safeloop_account_id) return
 
     try {
+      const isAdmin = userProfile.user_type === 'caregiver_admin'
       const [active, resolved] = await Promise.all([
-        userService.getActiveHelpRequests(userProfile.safeloop_account_id),
-        userService.getResolvedHelpRequests(userProfile.safeloop_account_id)
+        isAdmin
+          ? userService.getActiveHelpRequests(userProfile.safeloop_account_id)
+          : userService.getActiveHelpRequestsForCaregiver(userProfile.id),
+        isAdmin
+          ? userService.getResolvedHelpRequests(userProfile.safeloop_account_id)
+          : userService.getResolvedHelpRequestsForCaregiver(userProfile.id)
       ])
       setActiveRequests(active)
       setResolvedRequests(resolved)
@@ -49,33 +36,33 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [userProfile])
 
-  const setupRealtimeSubscription = () => {
+  useEffect(() => {
     if (!userProfile?.safeloop_account_id) return
+
+    loadHelpRequests()
 
     const subscription = supabase
       .channel('help-requests-realtime')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'help_requests'
-        },
-        (payload) => {
-          console.log('Help request change detected:', payload.eventType)
-          loadHelpRequests()
-        }
+        { event: '*', schema: 'public', table: 'help_requests' },
+        () => { loadHelpRequests() }
       )
-      .subscribe((status) => {
-        console.log('Help requests subscription status:', status)
-      })
+      .subscribe()
 
-    return () => {
-      subscription.unsubscribe()
-    }
-  }
+    return () => { subscription.unsubscribe() }
+  }, [loadHelpRequests])
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (userProfile?.safeloop_account_id) {
+        loadHelpRequests()
+      }
+    })
+    return unsubscribe
+  }, [navigation, loadHelpRequests])
 
   const handleSignOut = async () => {
     try {
@@ -104,6 +91,32 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const formatRequestType = (type: string) => {
     return type === 'fall' ? '🚨 Fall Detected' : '🆘 Help Requested'
+  }
+
+  const parseNotesLogEntries = (notes: string) => {
+    const autoPrefix = notes.split('\n\n')[0] || ''
+    const caregiverText = notes.split('\n\n').slice(1).join('\n\n').trim()
+    const lines = autoPrefix.split('\n').filter(l => l.trim())
+    const entries: { type: string; text: string; url?: string }[] = []
+    let i = 0
+    while (i < lines.length) {
+      const line = lines[i]
+      if (line.startsWith('Wearer located at:')) {
+        const nextLine = lines[i + 1]
+        const url = nextLine?.startsWith('https://') ? nextLine : undefined
+        entries.push({ type: 'location', text: line.replace('Wearer located at: ', ''), url })
+        i += url ? 2 : 1
+      } else if (line.startsWith('https://')) {
+        i++
+      } else if (line.includes('responded to the help request')) {
+        entries.push({ type: 'responder', text: line })
+        i++
+      } else {
+        entries.push({ type: 'event', text: line })
+        i++
+      }
+    }
+    return { entries, caregiverText }
   }
 
   if (loading) {
@@ -187,27 +200,27 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   <View key={request.id} style={styles.helpRequestCard}>
                     <View style={styles.helpRequestHeader}>
                       <Text style={styles.helpRequestType}>
-                        {request.event_status === 'responded_to'
-                          ? `👤 Being Assisted by ${request.responder?.display_name || 'a caregiver'}`
-                          : formatRequestType(request.request_type)}
+                        {formatRequestType(request.request_type)}
                       </Text>
                       <Text style={styles.helpRequestTime}>
                         {formatTime(request.created_at)}
                       </Text>
                     </View>
+                    {request.event_status === 'responded_to' && (
+                      <Text style={styles.helpRequestResponder}>
+                        👤 Being assisted by {request.responder?.display_name || 'a caregiver'}
+                      </Text>
+                    )}
 
                     <Text style={styles.helpRequestWearer}>
                       {request.wearer?.name || 'Unknown Wearer'}
                     </Text>
 
-                    {request.location_latitude && request.location_longitude && (
-                      <Text style={styles.helpRequestLocation}>
-                        📍 Location: {request.location_latitude.toFixed(4)}, {request.location_longitude.toFixed(4)}
-                      </Text>
-                    )}
-
                     <TouchableOpacity
-                      style={styles.assistButton}
+                      style={[
+                        styles.assistButton,
+                        request.event_status === 'responded_to' && styles.viewButton
+                      ]}
                       onPress={async () => {
                         if (request.event_status === 'active' && userProfile?.id) {
                           await userService.updateHelpRequestStatus(request.id, 'responded_to', userProfile.id)
@@ -215,7 +228,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         navigation.navigate('HelpRequestDetail', { helpRequestId: request.id })
                       }}
                     >
-                      <Text style={styles.assistButtonText}>Provide Assistance</Text>
+                      <Text style={styles.assistButtonText}>
+                        {request.event_status === 'responded_to' ? 'View Help Request' : 'Provide Assistance'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -236,46 +251,82 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               </View>
             ) : (
               <>
-                {resolvedRequests.map((request) => (
-                  <View key={request.id} style={styles.resolvedRequestCard}>
-                    <View style={styles.helpRequestHeader}>
-                      <Text style={styles.resolvedRequestType}>
-                        {formatRequestType(request.request_type)}
-                      </Text>
-                      <Text style={styles.helpRequestTime}>
-                        {formatTime(request.created_at)}
-                      </Text>
+                {resolvedRequests.map((request) => {
+                  const isFalseAlarm = request.event_status === 'false_alarm'
+                  const { entries, caregiverText } = request.notes
+                    ? parseNotesLogEntries(request.notes)
+                    : { entries: [], caregiverText: '' }
+                  return (
+                    <View
+                      key={request.id}
+                      style={[styles.resolvedRequestCard, isFalseAlarm && styles.resolvedRequestCardFalseAlarm]}
+                    >
+                      {/* Header */}
+                      <View style={styles.historyCardHeader}>
+                        <View style={styles.historyCardHeaderLeft}>
+                          <Text style={styles.historyRequestType}>
+                            {formatRequestType(request.request_type)}
+                          </Text>
+                          <Text style={styles.historyWearerName}>
+                            {request.wearer?.name || 'Unknown Wearer'}
+                          </Text>
+                        </View>
+                        <View style={[styles.statusBadge, isFalseAlarm && styles.statusBadgeFalseAlarm]}>
+                          <Text style={[styles.statusBadgeText, isFalseAlarm && styles.statusBadgeTextFalseAlarm]}>
+                            {isFalseAlarm ? '⚠️ False Alarm' : '✅ Resolved'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Timeline entries + resolution as unified log */}
+                      <View style={styles.historyLogSection}>
+                        {entries.map((entry, idx) => (
+                          <View key={idx} style={styles.historyLogEntry}>
+                            <Text style={styles.historyLogIcon}>
+                              {entry.type === 'event' ? '🚨' : entry.type === 'location' ? '📍' : '👤'}
+                            </Text>
+                            <View style={styles.historyLogBody}>
+                              <Text style={styles.historyLogText}>{entry.text}</Text>
+                              {entry.url && entry.type === 'location' && (
+                                <TouchableOpacity onPress={() => Linking.openURL(entry.url!)}>
+                                  <Text style={styles.historyLogLink}>View on Google Maps →</Text>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          </View>
+                        ))}
+
+                        {/* Resolution entry */}
+                        {(request.resolver?.display_name || request.resolved_at) && (
+                          <View style={styles.historyLogEntry}>
+                            <Text style={styles.historyLogIcon}>
+                              {isFalseAlarm ? '⚠️' : '✅'}
+                            </Text>
+                            <View style={styles.historyLogBody}>
+                              <Text style={styles.historyLogText}>
+                                {request.resolver?.display_name
+                                  ? `${isFalseAlarm ? 'Marked as False Alarm' : 'Resolved'} by ${request.resolver.display_name}`
+                                  : isFalseAlarm ? 'Marked as False Alarm' : 'Resolved'}
+                              </Text>
+                              {request.resolved_at && (
+                                <Text style={styles.historyLogMeta}>{formatTime(request.resolved_at)}</Text>
+                              )}
+                            </View>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Caregiver notes */}
+                      {caregiverText.length > 0 && (
+                        <View style={styles.historyCaregiverNotes}>
+                          <Text style={styles.historyCaregiverNotesLabel}>Notes</Text>
+                          <Text style={styles.historyCaregiverNotesText}>{caregiverText}</Text>
+                        </View>
+                      )}
+
                     </View>
-
-                    <Text style={styles.helpRequestWearer}>
-                      {request.wearer?.name || 'Unknown Wearer'}
-                    </Text>
-
-                    <View style={styles.statusBadge}>
-                      <Text style={styles.statusBadgeText}>
-                        {request.event_status === 'false_alarm' ? '⚠️ False Alarm' : '✅ Resolved'}
-                      </Text>
-                    </View>
-
-                    {request.resolved_at && (
-                      <Text style={styles.resolvedTime}>
-                        Resolved: {formatTime(request.resolved_at)}
-                      </Text>
-                    )}
-
-                    {request.resolver?.display_name && (
-                      <Text style={styles.resolvedBy}>
-                        Resolved by: {request.resolver.display_name}
-                      </Text>
-                    )}
-
-                    {request.notes && (
-                      <Text style={styles.notes}>
-                        Notes: {request.notes}
-                      </Text>
-                    )}
-                  </View>
-                ))}
+                  )
+                })}
               </>
             )}
           </>
@@ -423,13 +474,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   helpRequestType: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#e65100',
+    flex: 1,
+    marginRight: 8,
   },
   helpRequestTime: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
+    flexShrink: 0,
+  },
+  helpRequestResponder: {
+    fontSize: 13,
+    color: '#e65100',
+    marginBottom: 6,
+    marginTop: -4,
   },
   helpRequestWearer: {
     fontSize: 16,
@@ -443,10 +503,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   assistButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#f44336',
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
+  },
+  viewButton: {
+    backgroundColor: '#2196F3',
   },
   assistButtonText: {
     color: 'white',
@@ -487,53 +550,113 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   resolvedRequestCard: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'white',
     borderLeftWidth: 4,
-    borderLeftColor: '#9e9e9e',
+    borderLeftColor: '#4CAF50',
     borderRadius: 12,
     padding: 16,
     marginBottom: 15,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
     shadowRadius: 3.84,
     elevation: 3,
   },
-  resolvedRequestType: {
-    fontSize: 18,
+  resolvedRequestCardFalseAlarm: {
+    borderLeftColor: '#ff9800',
+  },
+  historyCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  historyCardHeaderLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+  historyRequestType: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#666',
+    color: '#333',
+    marginBottom: 2,
+  },
+  historyWearerName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#555',
   },
   statusBadge: {
     backgroundColor: '#e8f5e9',
     borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     alignSelf: 'flex-start',
-    marginVertical: 8,
+  },
+  statusBadgeFalseAlarm: {
+    backgroundColor: '#fff3e0',
   },
   statusBadgeText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#4CAF50',
   },
-  resolvedTime: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+  statusBadgeTextFalseAlarm: {
+    color: '#e65100',
   },
-  resolvedBy: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+  historyLogSection: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#eeeeee',
+    paddingTop: 10,
+    marginBottom: 10,
+    gap: 8,
   },
-  notes: {
+  historyLogEntry: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  historyLogIcon: {
     fontSize: 14,
-    color: '#555',
+    marginRight: 7,
+    marginTop: 1,
+  },
+  historyLogBody: {
+    flex: 1,
+  },
+  historyLogText: {
+    fontSize: 13,
+    color: '#444',
+    lineHeight: 18,
+  },
+  historyLogLink: {
+    fontSize: 12,
+    color: '#2196F3',
+    marginTop: 2,
+  },
+  historyLogMeta: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+  },
+  historyCaregiverNotes: {
+    backgroundColor: '#fafafa',
+    borderRadius: 6,
+    padding: 10,
     marginTop: 8,
-    fontStyle: 'italic',
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+  },
+  historyCaregiverNotesLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#999',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  historyCaregiverNotesText: {
+    fontSize: 13,
+    color: '#444',
+    lineHeight: 18,
   },
 })

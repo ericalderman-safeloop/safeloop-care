@@ -25,13 +25,21 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.safeloop.SafeLoopCare"
+      "package": "com.safeloop.SafeLoopCare",
+      "googleServicesFile": "./android/app/google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-dev-client",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SafeLoop needs access to your photos to set a wearer's profile photo.",
+          "cameraPermission": "SafeLoop needs camera access to take a wearer's profile photo."
+        }
+      ],
       "expo-apple-authentication",
       "expo-notifications",
       [

@@ -93,7 +93,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>‹ Back</Text>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Settings</Text>
       </View>
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: 'white',
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: '600',
   },
   title: {

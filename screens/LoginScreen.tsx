@@ -1,6 +1,7 @@
-import React from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
+import React, { useState } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
 import * as AppleAuthentication from 'expo-apple-authentication'
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
 import { signInWithApple, signInWithGoogle } from '../lib/auth'
 
 
@@ -13,19 +14,33 @@ if (!("structuredClone" in global)) {
 
 
 export default function LoginScreen() {
+  const [googleLoading, setGoogleLoading] = useState(false)
+
   const handleAppleSignIn = async () => {
     try {
       await signInWithApple()
     } catch (error) {
-      Alert.alert('Error', `Failed to sign in with Apple: ${error.message}`)
+      Alert.alert('Error', `Failed to sign in with Apple: ${(error as Error).message}`)
     }
   }
 
   const handleGoogleSignIn = async () => {
+    if (googleLoading) return
+    setGoogleLoading(true)
     try {
+      // Clear any stale sign-in state before starting
+      await GoogleSignin.signOut().catch(() => {})
       await signInWithGoogle()
-    } catch (error) {
-      Alert.alert('Error', 'Failed to sign in with Google')
+    } catch (error: any) {
+      if (error?.code === statusCodes.IN_PROGRESS) {
+        // Already signing in, ignore
+      } else if (error?.code === statusCodes.SIGN_IN_CANCELLED) {
+        // User cancelled, no alert needed
+      } else {
+        Alert.alert('Error', `Failed to sign in with Google: ${error?.message || 'Unknown error'}`)
+      }
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
@@ -44,8 +59,15 @@ export default function LoginScreen() {
           onPress={handleAppleSignIn}
         />
 
-        <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
-          <Text style={styles.googleButtonText}>Sign in with Google</Text>
+        <TouchableOpacity
+          style={[styles.googleButton, googleLoading && styles.googleButtonDisabled]}
+          onPress={handleGoogleSignIn}
+          disabled={googleLoading}
+        >
+          {googleLoading
+            ? <ActivityIndicator color="white" />
+            : <Text style={styles.googleButtonText}>Sign in with Google</Text>
+          }
         </TouchableOpacity>
       </View>
     </View>
@@ -85,6 +107,9 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
+  },
+  googleButtonDisabled: {
+    backgroundColor: '#a0b4f0',
   },
   googleButtonText: {
     color: 'white',

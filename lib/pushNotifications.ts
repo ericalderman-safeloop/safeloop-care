@@ -10,6 +10,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 })
 
@@ -57,12 +59,6 @@ export class PushNotificationService {
    */
   static async getExpoPushToken(): Promise<string | null> {
     try {
-      // Only works on physical devices
-      if (!Device.isDevice) {
-        console.log('⚠️ Push notifications only work on physical devices')
-        return null
-      }
-
       // Try to get project ID from config, fallback to undefined
       const projectId = Constants.expoConfig?.extra?.eas?.projectId
 

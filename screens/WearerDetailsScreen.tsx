@@ -177,7 +177,7 @@ export default function WearerDetailsScreen({ navigation, route }: WearerDetails
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>‹ Back</Text>
+          <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title} numberOfLines={1}>{wearer.name}</Text>
       </View>
@@ -279,13 +279,12 @@ export default function WearerDetailsScreen({ navigation, route }: WearerDetails
               Available Caregivers ({availableCaregivers.length})
             </Text>
             <Text style={styles.sectionDescription}>
-              Tap to assign these caregivers to {wearer.name}
+              Caregivers available to assign to {wearer.name}
             </Text>
             {availableCaregivers.map((caregiver) => (
-              <TouchableOpacity
+              <View
                 key={caregiver.id}
                 style={styles.availableCaregiverCard}
-                onPress={() => handleAssignCaregiver(caregiver)}
               >
                 <View style={styles.caregiverInfo}>
                   <View style={styles.caregiverNameRow}>
@@ -298,8 +297,13 @@ export default function WearerDetailsScreen({ navigation, route }: WearerDetails
                   </View>
                   <Text style={styles.caregiverEmail}>{caregiver.email}</Text>
                 </View>
-                <Text style={styles.assignIcon}>+</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.assignButton}
+                  onPress={() => handleAssignCaregiver(caregiver)}
+                >
+                  <Text style={styles.assignButtonText}>Assign</Text>
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         )}
@@ -342,18 +346,20 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
     backgroundColor: '#2196F3',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   backButton: {
-    padding: 10,
-    marginRight: 10,
+    marginRight: 15,
   },
   backButtonText: {
     color: 'white',
-    fontSize: 28,
-    fontWeight: '300',
+    fontSize: 16,
+    fontWeight: '600',
   },
   title: {
     fontSize: 28,
@@ -505,10 +511,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  assignIcon: {
-    fontSize: 32,
-    color: '#4CAF50',
-    fontWeight: '300',
+  assignButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginLeft: 10,
+  },
+  assignButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',

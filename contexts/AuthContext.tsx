@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../lib/supabase'
 import { UserProfile, userService, InvitationInfo } from '../lib/userService'
 import { PushNotificationService } from '../lib/pushNotifications'
+
+export const PENDING_INVITATION_TOKEN_KEY = 'pending_invitation_token'
 
 interface AuthContextType {
   session: Session | null
@@ -54,8 +57,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           })
         }
       } else {
-        // User profile doesn't exist - check for invitation first
-        const invitation = await userService.checkInvitation(email)
+        // User profile doesn't exist - check for invitation by email first,
+        // then fall back to a token stored from a deep link
+        let invitation = await userService.checkInvitation(email)
+        if (!invitation) {
+          const storedToken = await AsyncStorage.getItem(PENDING_INVITATION_TOKEN_KEY)
+          if (storedToken) {
+            invitation = await userService.checkInvitationByToken(storedToken)
+            if (invitation) {
+              await AsyncStorage.removeItem(PENDING_INVITATION_TOKEN_KEY)
+            }
+          }
+        }
         setInvitationInfo(invitation)
         setUserProfile(null)
         setNeedsProfileSetup(true)

@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react'
-import { NavigationContainer } from '@react-navigation/native'
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GoogleSignin } from '@react-native-google-signin/google-signin'
-import { ActivityIndicator, View, Text } from 'react-native'
+import { ActivityIndicator, View, Text, Alert, Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import * as Linking from 'expo-linking'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { AuthProvider, useAuth, PENDING_INVITATION_TOKEN_KEY } from './contexts/AuthContext'
 import LoginScreen from './screens/LoginScreen'
 import HomeScreen from './screens/HomeScreen'
 import ProfileSetupScreen from './screens/ProfileSetupScreen'
@@ -19,17 +21,22 @@ import CaregiversScreen from './screens/CaregiversScreen'
 import InviteCaregiverScreen from './screens/InviteCaregiverScreen'
 import HelpRequestDetailScreen from './screens/HelpRequestDetailScreen'
 
-class ErrorBoundary extends React.Component {
-  constructor(props) {
+interface ErrorBoundaryState {
+  hasError: boolean
+  error: Error | null
+}
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: React.ReactNode }) {
     super(props)
     this.state = { hasError: false, error: null }
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error }
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('💥 App Error:', error, errorInfo)
   }
 
@@ -52,10 +59,35 @@ class ErrorBoundary extends React.Component {
 const Stack = createNativeStackNavigator()
 
 function AppNavigator() {
-  const { session, loading, profileLoading, needsProfileSetup } = useAuth()
-  const navigationRef = useRef(null)
+  const { session, loading, profileLoading, needsProfileSetup, userProfile, refreshUserProfile } = useAuth()
+  const navigationRef = useRef<NavigationContainerRef<any>>(null)
 
   useEffect(() => {
+    const handleDeepLink = async (url: string) => {
+      const { hostname, queryParams } = Linking.parse(url)
+      if (hostname !== 'accept-invitation') return
+      const token = queryParams?.token as string | undefined
+      if (!token) return
+
+      if (session && userProfile) {
+        // Already logged in with a profile — invitation joining to a second account isn't supported yet
+        Alert.alert(
+          'Invitation Received',
+          'You already have an active SafeLoop account. Please contact the person who invited you to update your account access.',
+          [{ text: 'OK' }]
+        )
+      } else {
+        // Store token; it will be picked up in AuthContext once the user signs in
+        await AsyncStorage.setItem(PENDING_INVITATION_TOKEN_KEY, token)
+      }
+    }
+
+    // Handle deep link when app was closed (cold start)
+    Linking.getInitialURL().then(url => { if (url) handleDeepLink(url) })
+
+    // Handle deep link when app is already open
+    const linkSub = Linking.addEventListener('url', ({ url }) => handleDeepLink(url))
+
     // Handle notification taps to navigate to help request detail
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data
@@ -70,9 +102,10 @@ function AppNavigator() {
     })
 
     return () => {
+      linkSub.remove()
       Notifications.removeNotificationSubscription(subscription)
     }
-  }, [])
+  }, [session, userProfile])
 
   if (loading || profileLoading) {
     return (
@@ -99,11 +132,11 @@ function AppNavigator() {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Wearers" component={WearersScreen} />
             <Stack.Screen name="RegisterWearer" component={RegisterWearerScreen} />
-            <Stack.Screen name="EditWearer" component={EditWearerScreen} />
-            <Stack.Screen name="WearerDetails" component={WearerDetailsScreen} />
+            <Stack.Screen name="EditWearer" component={EditWearerScreen as React.ComponentType<any>} />
+            <Stack.Screen name="WearerDetails" component={WearerDetailsScreen as React.ComponentType<any>} />
             <Stack.Screen name="Caregivers" component={CaregiversScreen} />
             <Stack.Screen name="InviteCaregiver" component={InviteCaregiverScreen} />
-            <Stack.Screen name="HelpRequestDetail" component={HelpRequestDetailScreen} />
+            <Stack.Screen name="HelpRequestDetail" component={HelpRequestDetailScreen as React.ComponentType<any>} />
           </>
         )}
       </Stack.Navigator>
@@ -115,7 +148,7 @@ export default function App() {
   useEffect(() => {
     console.log('🚀 SafeLoop Care app launched successfully!')
     GoogleSignin.configure({
-      webClientId: '212440927886-i1db0p430ibtgi00r0e2savaplnaqlle.apps.googleusercontent.com',
+      webClientId: '212440927886-nkic15llg9409a2nt23pflo3bjj0rn0g.apps.googleusercontent.com',
       iosClientId: '212440927886-lug7neo6r1iq26t7j9ppn266p22ife36.apps.googleusercontent.com',
     })
   }, [])
