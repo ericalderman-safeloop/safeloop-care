@@ -106,13 +106,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
       setLoading(false)
-      
+
       if (session?.user?.id && session?.user?.email) {
         loadUserProfile(session.user.id, session.user.email)
       } else {
+        await AsyncStorage.removeItem(PENDING_INVITATION_TOKEN_KEY)
         setUserProfile(null)
         setInvitationInfo(null)
         setNeedsProfileSetup(false)
