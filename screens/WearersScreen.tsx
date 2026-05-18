@@ -106,28 +106,12 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
     }, [userProfile])
   )
 
-  // Set up real-time subscription for wearers and devices
+  // Set up real-time subscription for wearers (account-scoped)
   useEffect(() => {
     if (!userProfile?.safeloop_account_id) return
 
-    console.log('🔔 Setting up real-time subscriptions for wearers...', userProfile.safeloop_account_id)
-    
-    // Test connection first
-    console.log('🧪 Testing Supabase real-time connection...')
-    const testChannel = supabase
-      .channel('connection-test')
-      .subscribe((status) => {
-        console.log('🧪 Connection test status:', status)
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Supabase real-time is working!')
-        } else if (status === 'CHANNEL_ERROR') {
-          console.log('❌ Supabase real-time connection failed')
-        }
-      })
-
-    // Subscribe to changes in wearers table
     const wearersSubscription = supabase
-      .channel('wearers-realtime')
+      .channel(`wearers-${userProfile.safeloop_account_id}`)
       .on(
         'postgres_changes',
         {
@@ -136,46 +120,11 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
           table: 'wearers',
           filter: `safeloop_account_id=eq.${userProfile.safeloop_account_id}`
         },
-        (payload) => {
-          console.log('👤 REAL-TIME: Wearer change detected:', payload.eventType, payload.new || payload.old)
-          loadWearers()
-        }
+        () => loadWearers()
       )
-      .subscribe((status) => {
-        console.log('👤 Wearers subscription status:', status)
-      })
+      .subscribe()
 
-    // Subscribe to changes in devices table - this is key for verification updates
-    const devicesSubscription = supabase
-      .channel(`devices-verification-${userProfile.safeloop_account_id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'devices'
-        },
-        (payload) => {
-          console.log('📱 REAL-TIME: Device change detected:', payload.eventType)
-          
-          // Check if this is a verification update (is_verified changed to true)
-          if (payload.eventType === 'UPDATE' && payload.new?.is_verified === true && payload.old?.is_verified === false) {
-            console.log('✅ REAL-TIME: Device verification detected! Refreshing wearers...')
-          }
-          
-          loadWearers()
-        }
-      )
-      .subscribe((status) => {
-        console.log('📱 Devices subscription status:', status)
-      })
-
-    return () => {
-      console.log('🔕 Cleaning up real-time subscriptions')
-      supabase.removeChannel(testChannel)
-      supabase.removeChannel(wearersSubscription)
-      supabase.removeChannel(devicesSubscription)
-    }
+    return () => { supabase.removeChannel(wearersSubscription) }
   }, [userProfile?.safeloop_account_id])
 
   if (loading) {
