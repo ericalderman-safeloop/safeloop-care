@@ -25,6 +25,10 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
     phone_number: '',
   })
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false)
+  const [globalSensitivity, setGlobalSensitivity] = useState<'low' | 'medium' | 'high'>('medium')
+  const [sensitivityLoading, setSensitivityLoading] = useState(false)
+
+  const isAdmin = userProfile?.user_type === 'caregiver_admin'
 
   useEffect(() => {
     if (userProfile) {
@@ -33,6 +37,9 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
         phone_number: userProfile.phone_number || '',
       })
       setPushNotificationsEnabled(userProfile.push_notifications_enabled ?? true)
+    }
+    if (isAdmin) {
+      userService.getGlobalFallSensitivity().then(setGlobalSensitivity).catch(console.error)
     }
   }, [userProfile])
 
@@ -57,6 +64,21 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
       Alert.alert('Error', 'Failed to update profile. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSensitivityChange = async (value: 'low' | 'medium' | 'high') => {
+    setSensitivityLoading(true)
+    const previous = globalSensitivity
+    setGlobalSensitivity(value)
+    try {
+      await userService.setFallSensitivity('GLOBAL', value)
+    } catch (error) {
+      console.error('Error updating fall sensitivity:', error)
+      Alert.alert('Error', 'Failed to update fall detection sensitivity.')
+      setGlobalSensitivity(previous)
+    } finally {
+      setSensitivityLoading(false)
     }
   }
 
@@ -170,6 +192,38 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
           </View>
         </View>
         
+        {isAdmin && (
+          <View style={styles.fallDetectionSection}>
+            <Text style={styles.sectionTitle}>Fall Detection</Text>
+            <Text style={styles.fallDetectionDescription}>
+              Default sensitivity for all wearers without a specific setting.
+            </Text>
+            <View style={styles.sensitivityRow}>
+              {(['low', 'medium', 'high'] as const).map((level) => (
+                <TouchableOpacity
+                  key={level}
+                  style={[
+                    styles.sensitivityButton,
+                    globalSensitivity === level && styles.sensitivityButtonActive,
+                    sensitivityLoading && styles.sensitivityButtonDisabled,
+                  ]}
+                  onPress={() => handleSensitivityChange(level)}
+                  disabled={sensitivityLoading}
+                >
+                  <Text
+                    style={[
+                      styles.sensitivityButtonText,
+                      globalSensitivity === level && styles.sensitivityButtonTextActive,
+                    ]}
+                  >
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
         <View style={styles.accountInfo}>
           <Text style={styles.sectionTitle}>Account Information</Text>
           <View style={styles.infoRow}>
@@ -340,6 +394,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  fallDetectionSection: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 8,
+  },
+  fallDetectionDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+  },
+  sensitivityRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  sensitivityButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  sensitivityButtonActive: {
+    borderColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
+  },
+  sensitivityButtonDisabled: {
+    opacity: 0.5,
+  },
+  sensitivityButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#666',
+  },
+  sensitivityButtonTextActive: {
+    color: '#2196F3',
   },
   saveContainer: {
     padding: 20,

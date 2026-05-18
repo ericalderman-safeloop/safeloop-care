@@ -35,6 +35,11 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
     emergency_notes: '',
   })
   const [photoUri, setPhotoUri] = useState<string | null>(null)
+  const [wearerSensitivity, setWearerSensitivity] = useState<'low' | 'medium' | 'high' | null>(null)
+  const [globalSensitivity, setGlobalSensitivity] = useState<'low' | 'medium' | 'high'>('medium')
+  const [sensitivityLoading, setSensitivityLoading] = useState(false)
+
+  const isAdmin = userProfile?.user_type === 'caregiver_admin'
 
   const loadWearer = async () => {
     try {
@@ -47,12 +52,42 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
         emergency_notes: wearerData.emergency_notes || '',
       })
       setPhotoUri(wearerData.photo_url || null)
+
+      if (isAdmin && wearerData.device?.[0]?.seven_digit_code) {
+        const [wearerSpecific, globalDefault] = await Promise.all([
+          userService.getWearerFallSensitivity(wearerData.device[0].seven_digit_code),
+          userService.getGlobalFallSensitivity(),
+        ])
+        setWearerSensitivity(wearerSpecific)
+        setGlobalSensitivity(globalDefault)
+      }
     } catch (error) {
       console.error('Error loading wearer:', error)
       Alert.alert('Error', 'Failed to load wearer information.')
       navigation.goBack()
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSensitivityChange = async (value: 'low' | 'medium' | 'high' | null) => {
+    const deviceCode = wearer?.device?.[0]?.seven_digit_code
+    if (!deviceCode) return
+    setSensitivityLoading(true)
+    const previous = wearerSensitivity
+    setWearerSensitivity(value)
+    try {
+      if (value === null) {
+        await userService.clearWearerFallSensitivity(deviceCode)
+      } else {
+        await userService.setFallSensitivity(deviceCode, value)
+      }
+    } catch (error) {
+      console.error('Error updating wearer sensitivity:', error)
+      Alert.alert('Error', 'Failed to update fall detection sensitivity.')
+      setWearerSensitivity(previous)
+    } finally {
+      setSensitivityLoading(false)
     }
   }
 
@@ -245,6 +280,39 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
               Important medical or safety information for emergency responders
             </Text>
           </View>
+
+          {isAdmin && wearer?.device && wearer.device.length > 0 && (
+            <View style={styles.sensitivitySection}>
+              <Text style={styles.sectionTitle}>Fall Detection Sensitivity</Text>
+              <Text style={styles.helperText}>
+                Override the global default ({globalSensitivity}) for this wearer.
+              </Text>
+              <View style={styles.sensitivityRow}>
+                {([null, 'low', 'medium', 'high'] as const).map((level) => {
+                  const isActive = wearerSensitivity === level
+                  const label = level === null
+                    ? `Global (${globalSensitivity})`
+                    : level.charAt(0).toUpperCase() + level.slice(1)
+                  return (
+                    <TouchableOpacity
+                      key={String(level)}
+                      style={[
+                        styles.sensitivityButton,
+                        isActive && styles.sensitivityButtonActive,
+                        sensitivityLoading && styles.sensitivityButtonDisabled,
+                      ]}
+                      onPress={() => handleSensitivityChange(level)}
+                      disabled={sensitivityLoading}
+                    >
+                      <Text style={[styles.sensitivityButtonText, isActive && styles.sensitivityButtonTextActive]}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -361,6 +429,39 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 5,
     fontStyle: 'italic',
+  },
+  sensitivitySection: {
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  sensitivityRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 10,
+  },
+  sensitivityButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    backgroundColor: 'white',
+  },
+  sensitivityButtonActive: {
+    borderColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
+  },
+  sensitivityButtonDisabled: {
+    opacity: 0.5,
+  },
+  sensitivityButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  sensitivityButtonTextActive: {
+    color: '#2196F3',
   },
   buttonContainer: {
     padding: 20,

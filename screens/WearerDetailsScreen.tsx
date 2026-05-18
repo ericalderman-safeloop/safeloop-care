@@ -50,7 +50,6 @@ export default function WearerDetailsScreen({ navigation, route }: WearerDetails
   const [availableCaregivers, setAvailableCaregivers] = useState<AvailableCaregiver[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-
   const isAdmin = userProfile?.user_type === 'caregiver_admin'
 
   const loadWearerDetails = async () => {
