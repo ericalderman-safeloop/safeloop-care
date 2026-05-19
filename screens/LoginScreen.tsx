@@ -4,15 +4,6 @@ import * as AppleAuthentication from 'expo-apple-authentication'
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
 import { signInWithApple, signInWithGoogle } from '../lib/auth'
 
-
-import structuredClone from "@ungap/structured-clone";
-if (!("structuredClone" in global)) {
-  (global as typeof globalThis & { structuredClone?: typeof structuredClone }).structuredClone = structuredClone;
-}
-
-
-
-
 export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false)
 

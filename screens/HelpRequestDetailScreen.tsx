@@ -199,7 +199,9 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
       Alert.alert('No Contact', 'No contact phone number available for this wearer')
       return
     }
-    Linking.openURL(`tel:${phoneNumber}`)
+    // Strip non-digit chars (except leading +) so tel: URLs work across formats like (555) 123-4567
+    const dialable = phoneNumber.replace(/(?!^\+)[^\d]/g, '')
+    Linking.openURL(`tel:${dialable}`)
   }
 
   const handleCaregiverNotesChange = (text: string) => {

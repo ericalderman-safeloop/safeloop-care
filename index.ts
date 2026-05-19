@@ -1,4 +1,8 @@
 import 'react-native-url-polyfill/auto';
+import structuredClone from "@ungap/structured-clone";
+if (!("structuredClone" in global)) {
+  (global as typeof globalThis & { structuredClone?: typeof structuredClone }).structuredClone = structuredClone;
+}
 import { registerRootComponent } from 'expo';
 
 import App from './App';
