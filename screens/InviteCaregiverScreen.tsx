@@ -11,9 +11,10 @@ import {
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, Wearer } from '../lib/userService'
+import { AppNavigationProp } from '../types/navigation'
 
 interface InviteCaregiverScreenProps {
-  navigation: any
+  navigation: AppNavigationProp
 }
 
 export default function InviteCaregiverScreen({ navigation }: InviteCaregiverScreenProps) {

@@ -527,48 +527,39 @@ export const userService = {
 
   // Get caregivers assigned to a specific wearer
   async getAssignedCaregivers(wearerId: string): Promise<any[]> {
-    // First get the assignments
-    const { data: assignments, error: assignmentsError } = await supabase
+    const { data, error } = await supabase
       .from('caregiver_wearer_assignments')
-      .select('*')
+      .select(`
+        id,
+        relationship_type,
+        is_primary,
+        is_emergency_contact,
+        users!caregiver_user_id (
+          id,
+          email,
+          display_name,
+          phone_number,
+          user_type
+        )
+      `)
       .eq('wearer_id', wearerId)
 
-    if (assignmentsError) {
-      console.error('Error fetching assignments:', assignmentsError)
-      throw assignmentsError
+    if (error) {
+      console.error('Error fetching assigned caregivers:', error)
+      throw error
     }
 
-    if (!assignments || assignments.length === 0) {
-      return []
-    }
-
-    // Then get the user details for each caregiver
-    const caregiverIds = assignments.map((a: any) => a.caregiver_user_id)
-    const { data: caregivers, error: caregiversError } = await supabase
-      .from('users')
-      .select('id, email, display_name, phone_number, user_type')
-      .in('id', caregiverIds)
-
-    if (caregiversError) {
-      console.error('Error fetching caregivers:', caregiversError)
-      throw caregiversError
-    }
-
-    // Combine the data
-    return assignments.map((assignment: any) => {
-      const caregiver = caregivers?.find((c: any) => c.id === assignment.caregiver_user_id)
-      return {
-        assignment_id: assignment.id,
-        id: caregiver?.id,
-        email: caregiver?.email,
-        display_name: caregiver?.display_name,
-        phone_number: caregiver?.phone_number,
-        user_type: caregiver?.user_type,
-        relationship_type: assignment.relationship_type,
-        is_primary: assignment.is_primary,
-        is_emergency_contact: assignment.is_emergency_contact
-      }
-    })
+    return (data ?? []).map((row: any) => ({
+      assignment_id: row.id,
+      id: row.users?.id,
+      email: row.users?.email,
+      display_name: row.users?.display_name,
+      phone_number: row.users?.phone_number,
+      user_type: row.users?.user_type,
+      relationship_type: row.relationship_type,
+      is_primary: row.is_primary,
+      is_emergency_contact: row.is_emergency_contact
+    }))
   },
 
   // Get caregivers available to assign (not yet assigned to this wearer)

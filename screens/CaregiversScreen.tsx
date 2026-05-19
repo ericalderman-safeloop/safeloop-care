@@ -12,9 +12,10 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { userService } from '../lib/userService'
 import { useFocusEffect } from '@react-navigation/native'
+import { AppNavigationProp } from '../types/navigation'
 
 interface CaregiversScreenProps {
-  navigation: any
+  navigation: AppNavigationProp
 }
 
 interface CaregiverUser {

@@ -12,15 +12,10 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { userService, Wearer } from '../lib/userService'
 import WearerPhotoPicker from '../components/WearerPhotoPicker'
+import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { RootStackParamList } from '../types/navigation'
 
-interface EditWearerScreenProps {
-  navigation: any
-  route: {
-    params: {
-      wearerId: string
-    }
-  }
-}
+type EditWearerScreenProps = NativeStackScreenProps<RootStackParamList, 'EditWearer'>
 
 export default function EditWearerScreen({ navigation, route }: EditWearerScreenProps) {
   const { wearerId } = route.params

@@ -12,9 +12,10 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { userService, CreateWearerData } from '../lib/userService'
 import WearerPhotoPicker from '../components/WearerPhotoPicker'
+import { AppNavigationProp } from '../types/navigation'
 
 interface RegisterWearerScreenProps {
-  navigation: any
+  navigation: AppNavigationProp
 }
 
 interface CaregiverOption {

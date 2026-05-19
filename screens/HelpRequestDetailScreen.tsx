@@ -4,15 +4,10 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, HelpRequest } from '../lib/userService'
 import { supabase } from '../lib/supabase'
+import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { RootStackParamList } from '../types/navigation'
 
-interface HelpRequestDetailScreenProps {
-  navigation: any
-  route: {
-    params: {
-      helpRequestId: string
-    }
-  }
-}
+type HelpRequestDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'HelpRequestDetail'>
 
 interface LocationUpdate {
   latitude: number

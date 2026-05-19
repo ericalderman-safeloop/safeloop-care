@@ -12,9 +12,10 @@ import {
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, CreateUserProfileData } from '../lib/userService'
+import { AppNavigationProp } from '../types/navigation'
 
 interface SettingsScreenProps {
-  navigation: any
+  navigation: AppNavigationProp
 }
 
 export default function SettingsScreen({ navigation }: SettingsScreenProps) {

@@ -13,9 +13,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { userService, Wearer } from '../lib/userService'
 import { supabase } from '../lib/supabase'
 import { useFocusEffect } from '@react-navigation/native'
+import { AppNavigationProp } from '../types/navigation'
 
 interface WearersScreenProps {
-  navigation: any
+  navigation: AppNavigationProp
 }
 
 export default function WearersScreen({ navigation }: WearersScreenProps) {

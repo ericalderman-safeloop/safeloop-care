@@ -9,9 +9,10 @@ import {
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { signOut } from '../lib/auth'
+import { AppNavigationProp } from '../types/navigation'
 
 interface MainMenuScreenProps {
-  navigation: any
+  navigation: AppNavigationProp
 }
 
 export default function MainMenuScreen({ navigation }: MainMenuScreenProps) {

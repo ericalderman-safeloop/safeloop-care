@@ -20,6 +20,7 @@ import WearerDetailsScreen from './screens/WearerDetailsScreen'
 import CaregiversScreen from './screens/CaregiversScreen'
 import InviteCaregiverScreen from './screens/InviteCaregiverScreen'
 import HelpRequestDetailScreen from './screens/HelpRequestDetailScreen'
+import { RootStackParamList } from './types/navigation'
 
 interface ErrorBoundaryState {
   hasError: boolean
@@ -56,11 +57,11 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, Error
   }
 }
 
-const Stack = createNativeStackNavigator()
+const Stack = createNativeStackNavigator<RootStackParamList>()
 
 function AppNavigator() {
   const { session, loading, profileLoading, needsProfileSetup, userProfile, refreshUserProfile } = useAuth()
-  const navigationRef = useRef<NavigationContainerRef<any>>(null)
+  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null)
 
   useEffect(() => {
     const handleDeepLink = async (url: string) => {
@@ -132,11 +133,11 @@ function AppNavigator() {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Wearers" component={WearersScreen} />
             <Stack.Screen name="RegisterWearer" component={RegisterWearerScreen} />
-            <Stack.Screen name="EditWearer" component={EditWearerScreen as React.ComponentType<any>} />
-            <Stack.Screen name="WearerDetails" component={WearerDetailsScreen as React.ComponentType<any>} />
+            <Stack.Screen name="EditWearer" component={EditWearerScreen} />
+            <Stack.Screen name="WearerDetails" component={WearerDetailsScreen} />
             <Stack.Screen name="Caregivers" component={CaregiversScreen} />
             <Stack.Screen name="InviteCaregiver" component={InviteCaregiverScreen} />
-            <Stack.Screen name="HelpRequestDetail" component={HelpRequestDetailScreen as React.ComponentType<any>} />
+            <Stack.Screen name="HelpRequestDetail" component={HelpRequestDetailScreen} />
           </>
         )}
       </Stack.Navigator>

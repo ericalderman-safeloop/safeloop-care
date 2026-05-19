@@ -12,15 +12,10 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { userService, Wearer } from '../lib/userService'
 import { useFocusEffect } from '@react-navigation/native'
+import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { RootStackParamList } from '../types/navigation'
 
-interface WearerDetailsScreenProps {
-  navigation: any
-  route: {
-    params: {
-      wearerId: string
-    }
-  }
-}
+type WearerDetailsScreenProps = NativeStackScreenProps<RootStackParamList, 'WearerDetails'>
 
 interface AssignedCaregiver {
   id: string

@@ -4,9 +4,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { signOut } from '../lib/auth'
 import { userService, HelpRequest } from '../lib/userService'
 import { supabase } from '../lib/supabase'
+import { AppNavigationProp } from '../types/navigation'
 
 interface HomeScreenProps {
-  navigation: any
+  navigation: AppNavigationProp
 }
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
