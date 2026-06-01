@@ -935,46 +935,6 @@ export const userService = {
     return data || []
   },
 
-  // =============================================
-  // FALL DETECTION SETTINGS
-  // =============================================
-
-  async getGlobalFallSensitivity(): Promise<'low' | 'medium' | 'high'> {
-    const { data } = await supabase
-      .from('fall_detection_settings')
-      .select('sensitivity')
-      .eq('wearer_device_id', 'GLOBAL')
-      .maybeSingle()
-    return (data?.sensitivity as 'low' | 'medium' | 'high') ?? 'medium'
-  },
-
-  async getWearerFallSensitivity(wearerDeviceId: string): Promise<'low' | 'medium' | 'high' | null> {
-    const { data } = await supabase
-      .from('fall_detection_settings')
-      .select('sensitivity')
-      .eq('wearer_device_id', wearerDeviceId)
-      .maybeSingle()
-    return (data?.sensitivity as 'low' | 'medium' | 'high') ?? null
-  },
-
-  async setFallSensitivity(wearerDeviceId: string, sensitivity: 'low' | 'medium' | 'high'): Promise<void> {
-    const { error } = await supabase
-      .from('fall_detection_settings')
-      .upsert(
-        { wearer_device_id: wearerDeviceId, sensitivity, updated_at: new Date().toISOString() },
-        { onConflict: 'wearer_device_id' }
-      )
-    if (error) throw error
-  },
-
-  async clearWearerFallSensitivity(wearerDeviceId: string): Promise<void> {
-    const { error } = await supabase
-      .from('fall_detection_settings')
-      .delete()
-      .eq('wearer_device_id', wearerDeviceId)
-    if (error) throw error
-  },
-
   async updateHelpRequestStatus(
     helpRequestId: string,
     status: 'responded_to' | 'resolved' | 'false_alarm',
