@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Linking } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
-import { signOut } from '../lib/auth'
 import { userService, HelpRequest } from '../lib/userService'
 import { supabase } from '../lib/supabase'
 import { AppNavigationProp } from '../types/navigation'
@@ -67,14 +66,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     })
     return unsubscribe
   }, [navigation, loadHelpRequests])
-
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-    } catch (error) {
-      Alert.alert('Error', 'Failed to sign out')
-    }
-  }
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)

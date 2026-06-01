@@ -11,6 +11,7 @@ import {
   Switch
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
+import { signOut } from '../lib/auth'
 import { userService, CreateUserProfileData } from '../lib/userService'
 import { AppNavigationProp } from '../types/navigation'
 
@@ -99,6 +100,27 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
       // Revert the toggle on error
       setPushNotificationsEnabled(!value)
     }
+  }
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut()
+            } catch (error) {
+              Alert.alert('Error', 'Failed to sign out')
+            }
+          }
+        }
+      ]
+    )
   }
 
   const hasChanges = () => {
@@ -245,6 +267,9 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
           </View>
         </View>
 
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
 
       </ScrollView>
 
@@ -434,6 +459,19 @@ const styles = StyleSheet.create({
   },
   sensitivityButtonTextActive: {
     color: '#2196F3',
+  },
+  signOutButton: {
+    margin: 20,
+    marginTop: 30,
+    backgroundColor: '#ff4444',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  signOutText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   saveContainer: {
     padding: 20,

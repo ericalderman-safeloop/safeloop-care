@@ -8,7 +8,7 @@ import {
   Alert 
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
-import { signOut } from '../lib/auth'
+
 import { AppNavigationProp } from '../types/navigation'
 
 interface MainMenuScreenProps {
@@ -17,27 +17,6 @@ interface MainMenuScreenProps {
 
 export default function MainMenuScreen({ navigation }: MainMenuScreenProps) {
   const { userProfile } = useAuth()
-
-  const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut()
-            } catch (error) {
-              Alert.alert('Error', 'Failed to sign out')
-            }
-          }
-        }
-      ]
-    )
-  }
 
   const isAdmin = userProfile?.user_type === 'caregiver_admin'
 
@@ -112,9 +91,6 @@ export default function MainMenuScreen({ navigation }: MainMenuScreenProps) {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>Sign Out</Text>
-      </TouchableOpacity>
     </ScrollView>
   )
 }
@@ -195,17 +171,5 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#ccc',
     marginLeft: 10,
-  },
-  signOutButton: {
-    margin: 20,
-    backgroundColor: '#ff4444',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  signOutText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
 })

@@ -9,21 +9,13 @@ import { RootStackParamList } from '../types/navigation'
 
 type HelpRequestDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'HelpRequestDetail'>
 
-interface LocationUpdate {
-  latitude: number
-  longitude: number
-  accuracy?: number
-  timestamp: string
-}
-
 export default function HelpRequestDetailScreen({ navigation, route }: HelpRequestDetailScreenProps) {
   const { userProfile } = useAuth()
   const [helpRequest, setHelpRequest] = useState<HelpRequest | null>(null)
   const [loading, setLoading] = useState(true)
   const [notes, setNotes] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const [currentLocation, setCurrentLocation] = useState<LocationUpdate | null>(null)
-  const isResolvingRef = useRef(false)
+const isResolvingRef = useRef(false)
   const notesInitializedRef = useRef(false)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingSaveRef = useRef(false)
@@ -65,8 +57,8 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
             Alert.alert('Alert Resolved', message, [
               { text: 'OK', onPress: () => navigation.navigate('Home') }
             ])
-          } else if (newStatus === 'responded_to') {
-            // Another caregiver responded — refresh to switch to read-only mode
+          } else {
+            // Covers responded_to and any field-only updates (e.g. location refinement)
             loadHelpRequest()
           }
         }
@@ -78,36 +70,6 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
     }
   }, [route.params.helpRequestId])
 
-  useEffect(() => {
-    if (!route.params.helpRequestId) return
-
-    const channelName = `location-updates-${route.params.helpRequestId}`
-
-    const locationChannel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'location_updates',
-          filter: `help_request_id=eq.${route.params.helpRequestId}`
-        },
-        (payload) => {
-          setCurrentLocation({
-            latitude: Number(payload.new.latitude),
-            longitude: Number(payload.new.longitude),
-            accuracy: payload.new.accuracy ? Number(payload.new.accuracy) : undefined,
-            timestamp: payload.new.timestamp
-          })
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(locationChannel)
-    }
-  }, [route.params.helpRequestId])
 
   const buildRequestSentence = (request: HelpRequest): string => {
     const wearerName = request.wearer?.name || 'The wearer'
@@ -256,7 +218,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
               navigation.navigate('Home')
             } catch (error) {
               isResolvingRef.current = false
-              Alert.alert('Error', 'Failed to update alert status')
+              Alert.alert('Error', `Failed to update alert status: ${(error as any)?.message ?? String(error)}`)
             }
           }
         },
@@ -274,7 +236,7 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
               navigation.navigate('Home')
             } catch (error) {
               isResolvingRef.current = false
-              Alert.alert('Error', 'Failed to update alert status')
+              Alert.alert('Error', `Failed to update alert status: ${(error as any)?.message ?? String(error)}`)
             }
           }
         },
@@ -442,8 +404,8 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
                 style={styles.map}
                 provider={PROVIDER_GOOGLE}
                 region={{
-                  latitude: currentLocation ? currentLocation.latitude : Number(helpRequest.location_latitude),
-                  longitude: currentLocation ? currentLocation.longitude : Number(helpRequest.location_longitude),
+                  latitude: Number(helpRequest.location_latitude),
+                  longitude: Number(helpRequest.location_longitude),
                   latitudeDelta: 0.01,
                   longitudeDelta: 0.01,
                 }}
@@ -461,26 +423,12 @@ export default function HelpRequestDetailScreen({ navigation, route }: HelpReque
                   description="Initial location"
                   pinColor="blue"
                 />
-                {currentLocation && (
-                  <Marker
-                    coordinate={{
-                      latitude: currentLocation.latitude,
-                      longitude: currentLocation.longitude,
-                    }}
-                    title={String(helpRequest.wearer?.name || 'Wearer')}
-                    description="Current location"
-                    pinColor="red"
-                  />
-                )}
               </MapView>
-              {(currentLocation?.accuracy || helpRequest.location_accuracy) && (
+              {helpRequest.location_accuracy && (
                 <View style={styles.accuracyBadge}>
                   <Text style={styles.accuracyText}>
-                    Accuracy: ±{Number(currentLocation?.accuracy || helpRequest.location_accuracy).toFixed(0)}m
+                    Accuracy: ±{Number(helpRequest.location_accuracy).toFixed(0)}m
                   </Text>
-                  {currentLocation && (
-                    <Text style={styles.liveIndicator}>🔴 LIVE</Text>
-                  )}
                 </View>
               )}
               <TouchableOpacity style={styles.mapButton} onPress={openInMaps}>

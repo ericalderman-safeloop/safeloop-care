@@ -982,8 +982,15 @@ export const userService = {
     notes?: string
   ): Promise<void> {
     if (status === 'resolved' || status === 'false_alarm') {
-      // Route through Edge Function so all caregivers receive resolution notifications
+      // On cellular the background auto-refresh can fail silently, leaving an
+      // expired token in AsyncStorage. Refresh explicitly and pass the resulting
+      // token as a header so we bypass any stale cached value.
+      const { data: refreshData } = await supabase.auth.refreshSession()
+      const token = refreshData.session?.access_token
+        ?? (await supabase.auth.getSession()).data.session?.access_token
+
       const { error } = await supabase.functions.invoke('resolve-help-request', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: {
           help_request_id: helpRequestId,
           status,

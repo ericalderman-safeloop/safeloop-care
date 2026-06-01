@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GoogleSignin } from '@react-native-google-signin/google-signin'
 import { ActivityIndicator, View, Text, Alert, Platform } from 'react-native'
+import * as SplashScreen from 'expo-splash-screen'
 import * as Notifications from 'expo-notifications'
 import * as Linking from 'expo-linking'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -59,8 +60,12 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, Error
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
-function AppNavigator() {
+function AppNavigator({ onReady }: { onReady: () => void }) {
   const { session, loading, profileLoading, needsProfileSetup, userProfile, refreshUserProfile } = useAuth()
+
+  useEffect(() => {
+    if (!loading && !profileLoading) onReady()
+  }, [loading, profileLoading])
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null)
 
   useEffect(() => {
@@ -146,19 +151,30 @@ function AppNavigator() {
 }
 
 export default function App() {
+  const [minDelayElapsed, setMinDelayElapsed] = useState(false)
+  const [authReady, setAuthReady] = useState(false)
+
   useEffect(() => {
     console.log('🚀 SafeLoop Care app launched successfully!')
     GoogleSignin.configure({
       webClientId: '212440927886-nkic15llg9409a2nt23pflo3bjj0rn0g.apps.googleusercontent.com',
       iosClientId: '212440927886-lug7neo6r1iq26t7j9ppn266p22ife36.apps.googleusercontent.com',
     })
+    const timer = setTimeout(() => setMinDelayElapsed(true), 2000)
+    return () => clearTimeout(timer)
   }, [])
+
+  useEffect(() => {
+    if (minDelayElapsed && authReady) {
+      SplashScreen.hideAsync()
+    }
+  }, [minDelayElapsed, authReady])
 
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
         <AuthProvider>
-          <AppNavigator />
+          <AppNavigator onReady={() => setAuthReady(true)} />
         </AuthProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

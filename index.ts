@@ -3,7 +3,10 @@ import structuredClone from "@ungap/structured-clone";
 if (!("structuredClone" in global)) {
   (global as typeof globalThis & { structuredClone?: typeof structuredClone }).structuredClone = structuredClone;
 }
+import * as SplashScreen from 'expo-splash-screen';
 import { registerRootComponent } from 'expo';
+
+SplashScreen.preventAutoHideAsync();
 
 import App from './App';
 
