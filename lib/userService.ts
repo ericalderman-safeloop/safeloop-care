@@ -41,6 +41,7 @@ export interface Wearer {
   emergency_notes?: string
   wearer_contact_phone?: string
   photo_url?: string
+  fall_detection_mode?: 'apple' | 'custom'
   created_at: string
   updated_at: string
   device?: {
@@ -506,6 +507,14 @@ export const userService = {
     }
 
     return this.getWearerById(wearerId)
+  },
+
+  async setFallDetectionMode(wearerId: string, mode: 'apple' | 'custom'): Promise<void> {
+    const { error } = await supabase
+      .from('wearers')
+      .update({ fall_detection_mode: mode, updated_at: new Date().toISOString() })
+      .eq('id', wearerId)
+    if (error) throw error
   },
 
   // Delete a wearer (with confirmation)

@@ -21,6 +21,7 @@ import WearerDetailsScreen from './screens/WearerDetailsScreen'
 import CaregiversScreen from './screens/CaregiversScreen'
 import InviteCaregiverScreen from './screens/InviteCaregiverScreen'
 import HelpRequestDetailScreen from './screens/HelpRequestDetailScreen'
+import FallDetectionModeScreen from './screens/FallDetectionModeScreen'
 import { RootStackParamList } from './types/navigation'
 
 interface ErrorBoundaryState {
@@ -143,6 +144,7 @@ function AppNavigator({ onReady }: { onReady: () => void }) {
             <Stack.Screen name="Caregivers" component={CaregiversScreen} />
             <Stack.Screen name="InviteCaregiver" component={InviteCaregiverScreen} />
             <Stack.Screen name="HelpRequestDetail" component={HelpRequestDetailScreen} />
+            <Stack.Screen name="FallDetectionMode" component={FallDetectionModeScreen} />
           </>
         )}
       </Stack.Navigator>

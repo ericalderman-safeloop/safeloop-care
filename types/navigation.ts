@@ -13,6 +13,7 @@ export type RootStackParamList = {
   Caregivers: undefined
   InviteCaregiver: undefined
   HelpRequestDetail: { helpRequestId: string }
+  FallDetectionMode: { wearerId: string }
 }
 
 export type AppNavigationProp = NativeStackNavigationProp<RootStackParamList>

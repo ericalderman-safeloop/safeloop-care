@@ -15,6 +15,11 @@ import WearerPhotoPicker from '../components/WearerPhotoPicker'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { RootStackParamList } from '../types/navigation'
 
+const MODE_LABELS: Record<string, string> = {
+  apple: 'Apple Fall Detection',
+  custom: 'SafeLoop Proprietary',
+}
+
 type EditWearerScreenProps = NativeStackScreenProps<RootStackParamList, 'EditWearer'>
 
 export default function EditWearerScreen({ navigation, route }: EditWearerScreenProps) {
@@ -227,6 +232,24 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
             </Text>
           </View>
 
+          {isAdmin && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.sectionTitle}>Fall Detection</Text>
+              <TouchableOpacity
+                style={styles.settingsRow}
+                onPress={() => navigation.navigate('FallDetectionMode', { wearerId })}
+              >
+                <View style={styles.settingsRowLeft}>
+                  <Text style={styles.settingsRowLabel}>Detection Mode</Text>
+                  <Text style={styles.settingsRowValue}>
+                    {MODE_LABELS[wearer?.fall_detection_mode ?? 'apple'] ?? 'Apple Fall Detection'}
+                  </Text>
+                </View>
+                <Text style={styles.settingsRowChevron}>›</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Emergency Notes</Text>
             <TextInput
@@ -359,6 +382,35 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 5,
     fontStyle: 'italic',
+  },
+  settingsRow: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  settingsRowLeft: {
+    flex: 1,
+  },
+  settingsRowLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  settingsRowValue: {
+    fontSize: 13,
+    color: '#888',
+  },
+  settingsRowChevron: {
+    fontSize: 22,
+    color: '#ccc',
+    marginLeft: 8,
   },
   buttonContainer: {
     padding: 20,
