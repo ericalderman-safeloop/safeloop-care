@@ -40,7 +40,7 @@ export interface Wearer {
   allergies?: string[]
   emergency_notes?: string
   wearer_contact_phone?: string
-  photo_url?: string
+  photo_url?: string | null
   fall_detection_mode?: 'apple' | 'custom'
   created_at: string
   updated_at: string
@@ -422,6 +422,10 @@ export const userService = {
       throw new Error('This device code is already registered to another wearer')
     }
 
+    // Read the per-account default mode so admin's Settings preference
+    // applies to newly created wearers. Falls back to 'apple' if unset.
+    const defaultMode = await this.getAccountDefaultFallMode(userProfile.safeloop_account_id)
+
     // Create the wearer
     const { data: wearer, error: wearerError } = await supabase
       .from('wearers')
@@ -429,7 +433,8 @@ export const userService = {
         safeloop_account_id: userProfile.safeloop_account_id,
         name: wearerData.name,
         date_of_birth: wearerData.date_of_birth || null,
-        wearer_contact_phone: wearerData.wearer_contact_phone || null
+        wearer_contact_phone: wearerData.wearer_contact_phone || null,
+        fall_detection_mode: defaultMode,
       })
       .select()
       .single()
@@ -510,10 +515,68 @@ export const userService = {
   },
 
   async setFallDetectionMode(wearerId: string, mode: 'apple' | 'custom'): Promise<void> {
+    // Routed through an edge function so the server can push a silent APNs
+    // notification to the watch and apply the new mode in real time, rather
+    // than waiting for the wearer to next launch the watch app.
+    const { error } = await supabase.functions.invoke('set-fall-detection-mode', {
+      body: { wearer_id: wearerId, mode },
+    })
+    if (error) throw error
+  },
+
+  // =============================================
+  // FALL DETECTION DEFAULTS + SENSITIVITY
+  // =============================================
+
+  async getAccountDefaultFallMode(safeloopAccountId: string): Promise<'apple' | 'custom'> {
+    const { data } = await supabase
+      .from('safeloop_accounts')
+      .select('default_fall_detection_mode')
+      .eq('id', safeloopAccountId)
+      .maybeSingle()
+    return (data?.default_fall_detection_mode as 'apple' | 'custom') ?? 'apple'
+  },
+
+  async setAccountDefaultFallMode(safeloopAccountId: string, mode: 'apple' | 'custom'): Promise<void> {
     const { error } = await supabase
-      .from('wearers')
-      .update({ fall_detection_mode: mode, updated_at: new Date().toISOString() })
-      .eq('id', wearerId)
+      .from('safeloop_accounts')
+      .update({ default_fall_detection_mode: mode })
+      .eq('id', safeloopAccountId)
+    if (error) throw error
+  },
+
+  async getGlobalFallSensitivity(): Promise<'low' | 'medium' | 'high'> {
+    const { data } = await supabase
+      .from('fall_detection_settings')
+      .select('sensitivity')
+      .eq('wearer_device_id', 'GLOBAL')
+      .maybeSingle()
+    return (data?.sensitivity as 'low' | 'medium' | 'high') ?? 'medium'
+  },
+
+  async getWearerFallSensitivity(wearerDeviceId: string): Promise<'low' | 'medium' | 'high' | null> {
+    const { data } = await supabase
+      .from('fall_detection_settings')
+      .select('sensitivity')
+      .eq('wearer_device_id', wearerDeviceId)
+      .maybeSingle()
+    return (data?.sensitivity as 'low' | 'medium' | 'high') ?? null
+  },
+
+  async setFallSensitivity(wearerDeviceId: string, sensitivity: 'low' | 'medium' | 'high'): Promise<void> {
+    // Routed through an edge function so the server can push a silent APNs
+    // notification to the watch and apply the new sensitivity in real time
+    // (same pattern as set-fall-detection-mode).
+    const { error } = await supabase.functions.invoke('set-fall-detection-sensitivity', {
+      body: { wearer_device_id: wearerDeviceId, sensitivity },
+    })
+    if (error) throw error
+  },
+
+  async clearWearerFallSensitivity(wearerDeviceId: string): Promise<void> {
+    const { error } = await supabase.functions.invoke('set-fall-detection-sensitivity', {
+      body: { wearer_device_id: wearerDeviceId, sensitivity: null },
+    })
     if (error) throw error
   },
 

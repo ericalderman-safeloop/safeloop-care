@@ -1,23 +1,24 @@
-import React, { useState, useEffect } from 'react'
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  Alert, 
+import React, { useCallback, useState } from 'react'
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
   ScrollView,
-  ActivityIndicator 
+  ActivityIndicator
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, Wearer } from '../lib/userService'
 import WearerPhotoPicker from '../components/WearerPhotoPicker'
+import { useFocusEffect } from '@react-navigation/native'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { RootStackParamList } from '../types/navigation'
 
 const MODE_LABELS: Record<string, string> = {
   apple: 'Apple Fall Detection',
-  custom: 'SafeLoop Proprietary',
+  custom: 'SafeLoop Fall Detection',
 }
 
 type EditWearerScreenProps = NativeStackScreenProps<RootStackParamList, 'EditWearer'>
@@ -35,26 +36,64 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
     emergency_notes: '',
   })
   const [photoUri, setPhotoUri] = useState<string | null>(null)
+  const [wearerSensitivity, setWearerSensitivity] = useState<'low' | 'medium' | 'high' | null>(null)
+  const [globalSensitivity, setGlobalSensitivity] = useState<'low' | 'medium' | 'high'>('medium')
+  const [sensitivityLoading, setSensitivityLoading] = useState(false)
 
   const isAdmin = userProfile?.user_type === 'caregiver_admin'
 
-  const loadWearer = async () => {
+  // `seedForm` is false on focus re-runs so the user's in-progress edits to
+  // name / DOB / phone / notes aren't wiped when they return from a child
+  // screen (e.g. the Fall Detection Mode picker).
+  const loadWearer = async (seedForm: boolean) => {
     try {
       const wearerData = await userService.getWearerById(wearerId)
       setWearer(wearerData)
-      setFormData({
-        name: wearerData.name || '',
-        date_of_birth: wearerData.date_of_birth || '',
-        wearer_contact_phone: wearerData.wearer_contact_phone || '',
-        emergency_notes: wearerData.emergency_notes || '',
-      })
-      setPhotoUri(wearerData.photo_url || null)
+      if (seedForm) {
+        setFormData({
+          name: wearerData.name || '',
+          date_of_birth: wearerData.date_of_birth || '',
+          wearer_contact_phone: wearerData.wearer_contact_phone || '',
+          emergency_notes: wearerData.emergency_notes || '',
+        })
+        setPhotoUri(wearerData.photo_url || null)
+      }
+
+      if (isAdmin && wearerData.device?.[0]?.seven_digit_code) {
+        const [wearerSpecific, globalDefault] = await Promise.all([
+          userService.getWearerFallSensitivity(wearerData.device[0].seven_digit_code),
+          userService.getGlobalFallSensitivity(),
+        ])
+        setWearerSensitivity(wearerSpecific)
+        setGlobalSensitivity(globalDefault)
+      }
     } catch (error) {
       console.error('Error loading wearer:', error)
       Alert.alert('Error', 'Failed to load wearer information.')
       navigation.goBack()
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSensitivityChange = async (value: 'low' | 'medium' | 'high' | null) => {
+    const deviceCode = wearer?.device?.[0]?.seven_digit_code
+    if (!deviceCode) return
+    setSensitivityLoading(true)
+    const previous = wearerSensitivity
+    setWearerSensitivity(value)
+    try {
+      if (value === null) {
+        await userService.clearWearerFallSensitivity(deviceCode)
+      } else {
+        await userService.setFallSensitivity(deviceCode, value)
+      }
+    } catch (error) {
+      console.error('Error updating wearer sensitivity:', error)
+      Alert.alert('Error', 'Failed to update fall detection sensitivity.')
+      setWearerSensitivity(previous)
+    } finally {
+      setSensitivityLoading(false)
     }
   }
 
@@ -126,9 +165,11 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
     )
   }
 
-  useEffect(() => {
-    loadWearer()
-  }, [wearerId])
+  useFocusEffect(
+    useCallback(() => {
+      loadWearer(wearer === null)
+    }, [wearerId, wearer === null])
+  )
 
   if (loading) {
     return (
@@ -247,6 +288,39 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
                 </View>
                 <Text style={styles.settingsRowChevron}>›</Text>
               </TouchableOpacity>
+
+              {wearer?.fall_detection_mode === 'custom' && wearer?.device && wearer.device.length > 0 && (
+                <View style={styles.sensitivitySection}>
+                  <Text style={styles.settingsRowLabel}>Sensitivity</Text>
+                  <Text style={styles.helperText}>
+                    Override the account default ({globalSensitivity}) for this wearer.
+                  </Text>
+                  <View style={styles.sensitivityRow}>
+                    {([null, 'low', 'medium', 'high'] as const).map((level) => {
+                      const isActive = wearerSensitivity === level
+                      const label = level === null
+                        ? `Default (${globalSensitivity})`
+                        : level.charAt(0).toUpperCase() + level.slice(1)
+                      return (
+                        <TouchableOpacity
+                          key={String(level)}
+                          style={[
+                            styles.sensitivityButton,
+                            isActive && styles.sensitivityButtonActive,
+                            sensitivityLoading && styles.sensitivityButtonDisabled,
+                          ]}
+                          onPress={() => handleSensitivityChange(level)}
+                          disabled={sensitivityLoading}
+                        >
+                          <Text style={[styles.sensitivityButtonText, isActive && styles.sensitivityButtonTextActive]}>
+                            {label}
+                          </Text>
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
+                </View>
+              )}
             </View>
           )}
 
@@ -411,6 +485,39 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: '#ccc',
     marginLeft: 8,
+  },
+  sensitivitySection: {
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  sensitivityRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 10,
+  },
+  sensitivityButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    backgroundColor: 'white',
+  },
+  sensitivityButtonActive: {
+    borderColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
+  },
+  sensitivityButtonDisabled: {
+    opacity: 0.5,
+  },
+  sensitivityButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  sensitivityButtonTextActive: {
+    color: '#2196F3',
   },
   buttonContainer: {
     padding: 20,

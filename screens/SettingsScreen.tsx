@@ -27,8 +27,13 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
     phone_number: '',
   })
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false)
+  const [defaultMode, setDefaultMode] = useState<'apple' | 'custom'>('apple')
+  const [globalSensitivity, setGlobalSensitivity] = useState<'low' | 'medium' | 'high'>('medium')
+  const [defaultModeSaving, setDefaultModeSaving] = useState(false)
+  const [sensitivitySaving, setSensitivitySaving] = useState(false)
 
   const isAdmin = userProfile?.user_type === 'caregiver_admin'
+  const accountId = userProfile?.safeloop_account_id
 
   useEffect(() => {
     if (userProfile) {
@@ -38,7 +43,11 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
       })
       setPushNotificationsEnabled(userProfile.push_notifications_enabled ?? true)
     }
-  }, [userProfile])
+    if (isAdmin && accountId) {
+      userService.getAccountDefaultFallMode(accountId).then(setDefaultMode).catch(console.error)
+      userService.getGlobalFallSensitivity().then(setGlobalSensitivity).catch(console.error)
+    }
+  }, [userProfile, isAdmin, accountId])
 
   const handleSave = async () => {
     if (!formData.display_name.trim()) {
@@ -61,6 +70,38 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
       Alert.alert('Error', 'Failed to update profile. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDefaultModeChange = async (mode: 'apple' | 'custom') => {
+    if (!accountId || mode === defaultMode) return
+    const previous = defaultMode
+    setDefaultMode(mode)
+    setDefaultModeSaving(true)
+    try {
+      await userService.setAccountDefaultFallMode(accountId, mode)
+    } catch (error) {
+      console.error('Error updating default fall mode:', error)
+      Alert.alert('Error', 'Failed to update default fall detection mode.')
+      setDefaultMode(previous)
+    } finally {
+      setDefaultModeSaving(false)
+    }
+  }
+
+  const handleSensitivityChange = async (value: 'low' | 'medium' | 'high') => {
+    if (value === globalSensitivity) return
+    const previous = globalSensitivity
+    setGlobalSensitivity(value)
+    setSensitivitySaving(true)
+    try {
+      await userService.setFallSensitivity('GLOBAL', value)
+    } catch (error) {
+      console.error('Error updating fall sensitivity:', error)
+      Alert.alert('Error', 'Failed to update fall detection sensitivity.')
+      setGlobalSensitivity(previous)
+    } finally {
+      setSensitivitySaving(false)
     }
   }
 
@@ -194,6 +235,67 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
             />
           </View>
         </View>
+        {isAdmin && (
+          <View style={styles.fallDetectionSection}>
+            <Text style={styles.sectionTitle}>Fall Detection</Text>
+
+            <Text style={styles.fallSubLabel}>Default for new wearers</Text>
+            <Text style={styles.fallDescription}>
+              Applied to wearers added after this is set. Existing wearers keep their current mode.
+            </Text>
+            <View style={styles.choiceRow}>
+              {(['apple', 'custom'] as const).map((m) => {
+                const isActive = defaultMode === m
+                const label = m === 'apple' ? 'Apple' : 'SafeLoop'
+                return (
+                  <TouchableOpacity
+                    key={m}
+                    style={[
+                      styles.choiceButton,
+                      isActive && styles.choiceButtonActive,
+                      defaultModeSaving && styles.choiceButtonDisabled,
+                    ]}
+                    onPress={() => handleDefaultModeChange(m)}
+                    disabled={defaultModeSaving}
+                  >
+                    <Text style={[styles.choiceButtonText, isActive && styles.choiceButtonTextActive]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+
+            <Text style={[styles.fallSubLabel, { marginTop: 18 }]}>
+              Default sensitivity (SafeLoop Fall Detection)
+            </Text>
+            <Text style={styles.fallDescription}>
+              Default sensitivity for wearers using SafeLoop's fall detection. Per-wearer overrides are set on the wearer's Edit screen.
+            </Text>
+            <View style={styles.choiceRow}>
+              {(['low', 'medium', 'high'] as const).map((level) => {
+                const isActive = globalSensitivity === level
+                return (
+                  <TouchableOpacity
+                    key={level}
+                    style={[
+                      styles.choiceButton,
+                      isActive && styles.choiceButtonActive,
+                      sensitivitySaving && styles.choiceButtonDisabled,
+                    ]}
+                    onPress={() => handleSensitivityChange(level)}
+                    disabled={sensitivitySaving}
+                  >
+                    <Text style={[styles.choiceButtonText, isActive && styles.choiceButtonTextActive]}>
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+          </View>
+        )}
+
         <View style={styles.accountInfo}>
           <Text style={styles.sectionTitle}>Account Information</Text>
           <View style={styles.infoRow}>
@@ -367,6 +469,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  fallDetectionSection: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 8,
+  },
+  fallSubLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 4,
+  },
+  fallDescription: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 4,
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  choiceRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  choiceButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  choiceButtonActive: {
+    borderColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
+  },
+  choiceButtonDisabled: {
+    opacity: 0.5,
+  },
+  choiceButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#666',
+  },
+  choiceButtonTextActive: {
+    color: '#2196F3',
   },
   signOutButton: {
     margin: 20,

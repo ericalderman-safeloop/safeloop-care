@@ -43,13 +43,13 @@ const MODES: {
   },
   {
     id: 'custom',
-    title: 'SafeLoop Proprietary Detection',
+    title: 'SafeLoop Fall Detection',
     subtitle: 'For more control of fall detection sensitivity and response flow',
     how: "SafeLoop's own fall detection algorithm runs continuously on the watch using raw accelerometer data. When a fall is detected, SafeLoop shows its own 30-second countdown directly. If the wearer doesn't respond, caregivers are alerted.",
     pros: [
       'Avoids calling local 911 services directly, which can be unreliable in some regions',
       'Can be customized with per-wearer sensitivity settings',
-      'Simpler experience only shows SafeLoop\'s own countdown (not Apple\'s alerts',
+      'Simpler experience only shows SafeLoop\'s own countdown (not Apple\'s alerts)',
     ],
     cons: [
       'Increases battery drain by ~30–50% (18-hour watch becomes ~10–13 hours)',
@@ -88,8 +88,8 @@ export default function FallDetectionModeScreen({ navigation, route }: Props) {
       await userService.setFallDetectionMode(wearerId, mode)
       setCurrentMode(mode)
 
-      const modeName = mode === 'apple' ? 'Apple Fall Detection' : 'SafeLoop Proprietary Detection'
-      Alert.alert('Saved', `Fall detection mode changed to ${modeName}. The watch will apply this setting on its next launch.`)
+      const modeName = mode === 'apple' ? 'Apple Fall Detection' : 'SafeLoop Fall Detection'
+      Alert.alert('Saved', `Fall detection mode changed to ${modeName}. The watch will apply this setting within a few seconds.`)
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to save. Please try again.')
     } finally {
@@ -186,7 +186,7 @@ export default function FallDetectionModeScreen({ navigation, route }: Props) {
         })}
 
         <Text style={styles.footer}>
-          Changes take effect the next time the watch app launches. The wearer does not need to take any action.
+          Changes apply within a few seconds. The wearer does not need to take any action.
         </Text>
       </ScrollView>
     </View>
