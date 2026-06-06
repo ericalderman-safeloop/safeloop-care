@@ -53,7 +53,6 @@ const MODES: {
     ],
     cons: [
       'Increases battery drain by ~30–50% (18-hour watch becomes ~10–13 hours)',
-      'Shows a green workout indicator near the watch crown',
       'Algorithm is less proven than Apple\'s hardware detection',
     ],
   },
