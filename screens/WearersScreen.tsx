@@ -25,6 +25,16 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
+  const isAdmin = userProfile?.user_type === 'caregiver_admin'
+
+  // Defense in depth: the menu hides this screen for non-admins, but if a
+  // non-admin reaches it via deep link or nav stack, bounce them home.
+  useEffect(() => {
+    if (userProfile && !isAdmin) {
+      navigation.navigate('Home')
+    }
+  }, [userProfile, isAdmin, navigation])
+
   const loadWearers = async () => {
     if (!userProfile) return
     
@@ -74,6 +84,17 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
     if (!lastSeen) return 'Never'
     const date = new Date(lastSeen)
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const getBatteryDisplay = (deviceArray?: Wearer['device']) => {
+    const device = deviceArray && deviceArray.length > 0 ? deviceArray[0] : undefined
+    if (!device || device.battery_level == null) return null
+
+    const level = device.battery_level
+    const charging = device.battery_state === 'charging' || device.battery_state === 'full'
+    const color = charging ? '#4CAF50' : level <= 15 ? '#f44336' : level <= 30 ? '#ff9800' : '#4CAF50'
+    const icon = charging ? '⚡' : '🔋'
+    return { text: `${icon} ${level}%`, color }
   }
 
   const getDeviceStatus = (deviceArray?: Wearer['device']) => {
@@ -187,6 +208,7 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
         ) : (
           wearers.map((wearer) => {
             const deviceStatus = getDeviceStatus(wearer.device)
+            const battery = getBatteryDisplay(wearer.device)
             return (
               <View
                 key={wearer.id}
@@ -215,6 +237,11 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
                       </Text>
                     )}
                   </View>
+                  {battery && (
+                    <Text style={[styles.batteryText, { color: battery.color }]}>
+                      {battery.text}
+                    </Text>
+                  )}
                 </View>
 
                 <View style={styles.actionButtons}>
@@ -387,6 +414,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginLeft: 8,
+  },
+  batteryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 6,
   },
   actionButtons: {
     flexDirection: 'row',

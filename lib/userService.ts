@@ -50,6 +50,8 @@ export interface Wearer {
     device_model?: string
     is_verified: boolean
     last_seen?: string
+    battery_level?: number | null
+    battery_state?: 'unknown' | 'unplugged' | 'charging' | 'full' | null
   }[]
 }
 
@@ -408,7 +410,7 @@ export const userService = {
       .from('wearers')
       .select(`
         *,
-        device:devices(id, seven_digit_code, device_model, is_verified, last_seen)
+        device:devices(id, seven_digit_code, device_model, is_verified, last_seen, battery_level, battery_state)
       `)
       .eq('safeloop_account_id', userProfile.safeloop_account_id)
       .order('created_at', { ascending: false })
@@ -502,7 +504,7 @@ export const userService = {
       .from('wearers')
       .select(`
         *,
-        device:devices(id, seven_digit_code, device_model, is_verified, last_seen)
+        device:devices(id, seven_digit_code, device_model, is_verified, last_seen, battery_level, battery_state)
       `)
       .eq('id', wearerId)
       .single()
