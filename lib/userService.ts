@@ -308,6 +308,29 @@ export const userService = {
     }
   },
 
+  // Read the caregiver's preferred sound for help-request / fall alerts.
+  // Defaults to 'alarm' if the row is missing (matches DB default).
+  async getHelpRequestSound(userId: string): Promise<'alarm' | 'standard'> {
+    const { data, error } = await supabase
+      .from('notification_preferences')
+      .select('help_request_sound')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (error) throw error
+    const value = data?.help_request_sound
+    return value === 'standard' ? 'standard' : 'alarm'
+  },
+
+  async setHelpRequestSound(userId: string, sound: 'alarm' | 'standard'): Promise<void> {
+    const { error } = await supabase
+      .from('notification_preferences')
+      .update({ help_request_sound: sound, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+
+    if (error) throw error
+  },
+
   // Invite a caregiver to join the account
   async inviteCaregiver(
     email: string,

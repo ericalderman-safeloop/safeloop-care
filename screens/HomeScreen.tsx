@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { userService, HelpRequest } from '../lib/userService'
 import { supabase } from '../lib/supabase'
 import { AppNavigationProp } from '../types/navigation'
+import AlertSoundOnboardingModal from '../components/AlertSoundOnboardingModal'
 
 interface HomeScreenProps {
   navigation: AppNavigationProp
@@ -135,6 +136,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   return (
     <View style={styles.container}>
+      <AlertSoundOnboardingModal userId={userProfile?.id} />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.menuButton}

@@ -10,10 +10,13 @@ import {
   ActivityIndicator,
   Switch
 } from 'react-native'
+import { useAudioPlayer } from 'expo-audio'
 import { useAuth } from '../contexts/AuthContext'
 import { signOut } from '../lib/auth'
 import { userService, CreateUserProfileData } from '../lib/userService'
 import { AppNavigationProp } from '../types/navigation'
+
+const ALARM_SOUND = require('../assets/safeloop_alarm.caf')
 
 interface SettingsScreenProps {
   navigation: AppNavigationProp
@@ -27,6 +30,9 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
     phone_number: '',
   })
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false)
+  const [helpRequestSound, setHelpRequestSound] = useState<'alarm' | 'standard'>('alarm')
+  const [helpRequestSoundSaving, setHelpRequestSoundSaving] = useState(false)
+  const alarmPlayer = useAudioPlayer(ALARM_SOUND)
   const [defaultMode, setDefaultMode] = useState<'apple' | 'custom'>('apple')
   const [globalSensitivity, setGlobalSensitivity] = useState<'low' | 'medium' | 'high'>('medium')
   const [defaultModeSaving, setDefaultModeSaving] = useState(false)
@@ -42,6 +48,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
         phone_number: userProfile.phone_number || '',
       })
       setPushNotificationsEnabled(userProfile.push_notifications_enabled ?? true)
+      userService.getHelpRequestSound(userProfile.id).then(setHelpRequestSound).catch(console.error)
     }
     if (isAdmin && accountId) {
       userService.getAccountDefaultFallMode(accountId).then(setDefaultMode).catch(console.error)
@@ -102,6 +109,36 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
       setGlobalSensitivity(previous)
     } finally {
       setSensitivitySaving(false)
+    }
+  }
+
+  const handleHelpRequestSoundChange = async (value: 'alarm' | 'standard') => {
+    if (!userProfile?.id || value === helpRequestSound) return
+    const previous = helpRequestSound
+    setHelpRequestSound(value)
+    setHelpRequestSoundSaving(true)
+    try {
+      await userService.setHelpRequestSound(userProfile.id, value)
+    } catch (error) {
+      console.error('Error updating help request sound:', error)
+      Alert.alert('Error', 'Failed to update alert sound preference. Please try again.')
+      setHelpRequestSound(previous)
+    } finally {
+      setHelpRequestSoundSaving(false)
+    }
+  }
+
+  const handlePreviewAlarm = () => {
+    try {
+      alarmPlayer.seekTo(0)
+      alarmPlayer.play()
+      // Auto-stop after 4s — long enough to convey the feel without becoming
+      // annoying inside the Settings screen
+      setTimeout(() => {
+        try { alarmPlayer.pause() } catch {}
+      }, 4000)
+    } catch (error) {
+      console.error('Error previewing alarm:', error)
     }
   }
 
@@ -233,6 +270,46 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
               trackColor={{ false: '#ccc', true: '#2196F3' }}
               thumbColor={pushNotificationsEnabled ? '#fff' : '#f4f3f4'}
             />
+          </View>
+
+          <View style={styles.soundPrefSection}>
+            <View style={styles.soundPrefHeaderRow}>
+              <Text style={styles.notificationLabel}>Emergency Alert Sound</Text>
+              <TouchableOpacity
+                style={styles.previewButton}
+                onPress={handlePreviewAlarm}
+                disabled={!pushNotificationsEnabled}
+              >
+                <Text style={[styles.previewButtonText, !pushNotificationsEnabled && styles.previewButtonTextDisabled]}>
+                  ▶ Preview alarm
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.notificationDescription}>
+              Played when a wearer requests help or a fall is detected.
+            </Text>
+            <View style={[styles.choiceRow, { marginTop: 12 }]}>
+              {(['alarm', 'standard'] as const).map((opt) => {
+                const isActive = helpRequestSound === opt
+                const label = opt === 'alarm' ? 'Loud alarm' : 'Standard'
+                return (
+                  <TouchableOpacity
+                    key={opt}
+                    style={[
+                      styles.choiceButton,
+                      isActive && styles.choiceButtonActive,
+                      (helpRequestSoundSaving || !pushNotificationsEnabled) && styles.choiceButtonDisabled,
+                    ]}
+                    onPress={() => handleHelpRequestSoundChange(opt)}
+                    disabled={helpRequestSoundSaving || !pushNotificationsEnabled}
+                  >
+                    <Text style={[styles.choiceButtonText, isActive && styles.choiceButtonTextActive]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
           </View>
         </View>
         {isAdmin && (
@@ -469,6 +546,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  soundPrefSection: {
+    marginTop: 18,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  soundPrefHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  previewButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    backgroundColor: '#e3f2fd',
+  },
+  previewButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2196F3',
+  },
+  previewButtonTextDisabled: {
+    color: '#999',
   },
   fallDetectionSection: {
     marginTop: 20,

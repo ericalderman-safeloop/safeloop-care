@@ -43,7 +43,13 @@ const config = {
       }
     ],
     "expo-apple-authentication",
-    "expo-notifications",
+    "expo-audio",
+    [
+      "expo-notifications",
+      {
+        sounds: ["./assets/safeloop_alarm.caf"]
+      }
+    ],
     [
       "@react-native-google-signin/google-signin",
       {
