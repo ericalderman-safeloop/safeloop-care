@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { userService, CreateUserProfileData } from '../lib/userService'
+import { signOut } from '../lib/auth'
 
 export default function ProfileSetupScreen() {
   const { session, invitationInfo, refreshUserProfile } = useAuth()
@@ -19,6 +20,27 @@ export default function ProfileSetupScreen() {
     display_name: '',
     phone_number: '',
   })
+
+  const handleUseDifferentAccount = () => {
+    Alert.alert(
+      'Use a Different Account',
+      'Sign out and return to the sign-in screen? Any details entered here will be discarded.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut()
+            } catch (error) {
+              Alert.alert('Error', 'Failed to sign out')
+            }
+          }
+        }
+      ]
+    )
+  }
 
   const handleSave = async () => {
     if (!formData.display_name.trim()) {
@@ -60,7 +82,12 @@ export default function ProfileSetupScreen() {
       )
     } catch (error) {
       console.error('Error creating profile:', error)
-      Alert.alert('Error', 'Failed to create profile. Please try again.')
+      const message =
+        (error as any)?.message ||
+        (error as any)?.details ||
+        (error as any)?.hint ||
+        'Failed to create profile. Please try again.'
+      Alert.alert('Error', message)
     } finally {
       setLoading(false)
     }
@@ -133,8 +160,8 @@ export default function ProfileSetupScreen() {
         </View>
       </View>
 
-      <TouchableOpacity 
-        style={[styles.saveButton, loading && styles.saveButtonDisabled]} 
+      <TouchableOpacity
+        style={[styles.saveButton, loading && styles.saveButtonDisabled]}
         onPress={handleSave}
         disabled={loading}
       >
@@ -143,6 +170,14 @@ export default function ProfileSetupScreen() {
         ) : (
           <Text style={styles.saveButtonText}>Complete Setup</Text>
         )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.signOutLink}
+        onPress={handleUseDifferentAccount}
+        disabled={loading}
+      >
+        <Text style={styles.signOutLinkText}>Use a different account</Text>
       </TouchableOpacity>
     </ScrollView>
   )
@@ -227,5 +262,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
+  },
+  signOutLink: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingBottom: 40,
+  },
+  signOutLinkText: {
+    color: '#2196F3',
+    fontSize: 15,
+    fontWeight: '500',
   },
 })
