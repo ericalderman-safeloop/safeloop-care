@@ -95,16 +95,15 @@ function AppNavigator({ onReady }: { onReady: () => void }) {
     // Handle deep link when app is already open
     const linkSub = Linking.addEventListener('url', ({ url }) => handleDeepLink(url))
 
-    // Handle notification taps to navigate to help request detail
+    // Handle notification taps. We route to the Dashboard (Home) rather than
+    // straight into HelpRequestDetail so the responder has to consciously tap
+    // "Provide Assistance" — that button is the only place that flips the
+    // help request to responded_to and stamps the responder.
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data
 
-      // Check if this is a help_request notification
-      if (data.type === 'help_request' && data.help_request_id && navigationRef.current) {
-        // Navigate to the help request detail screen
-        navigationRef.current.navigate('HelpRequestDetail', {
-          helpRequestId: data.help_request_id
-        })
+      if (data.type === 'help_request' && navigationRef.current) {
+        navigationRef.current.navigate('Home')
       }
     })
 
