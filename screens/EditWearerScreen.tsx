@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -41,6 +41,12 @@ export default function EditWearerScreen({ navigation, route }: EditWearerScreen
   const [sensitivityLoading, setSensitivityLoading] = useState(false)
 
   const isAdmin = userProfile?.user_type === 'caregiver_admin'
+
+  useEffect(() => {
+    if (userProfile && !isAdmin) {
+      navigation.navigate('Home')
+    }
+  }, [userProfile, isAdmin, navigation])
 
   // `seedForm` is false on focus re-runs so the user's in-progress edits to
   // name / DOB / phone / notes aren't wiped when they return from a child

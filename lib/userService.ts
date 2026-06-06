@@ -159,7 +159,7 @@ export const userService = {
     const { data, error } = await supabase
       .from('caregiver_invitations')
       .select('id, invitation_token, safeloop_account_id, invited_by')
-      .eq('email', email)
+      .eq('email', email.trim().toLowerCase())
       .eq('status', 'pending')
       .gt('expires_at', new Date().toISOString())
       .single()
@@ -307,12 +307,18 @@ export const userService = {
   },
 
   // Invite a caregiver to join the account
-  async inviteCaregiver(email: string, safeloopAccountId: string, wearerIds: string[] = []): Promise<void> {
+  async inviteCaregiver(
+    email: string,
+    safeloopAccountId: string,
+    wearerIds: string[] = [],
+    invitedUserType: 'caregiver' | 'caregiver_admin' = 'caregiver'
+  ): Promise<void> {
     const { data, error } = await supabase.functions.invoke('invite-caregiver', {
       body: {
-        email: email,
+        email: email.trim().toLowerCase(),
         safeloop_account_id: safeloopAccountId,
-        wearer_ids: wearerIds
+        wearer_ids: wearerIds,
+        invited_user_type: invitedUserType
       }
     })
 
@@ -323,6 +329,19 @@ export const userService = {
     if (!data?.success) {
       throw new Error(data?.error || 'Failed to send invitation')
     }
+  },
+
+  // Promote or demote an existing caregiver
+  async updateCaregiverRole(
+    targetUserId: string,
+    newUserType: 'caregiver' | 'caregiver_admin'
+  ): Promise<void> {
+    const { data, error } = await supabase.functions.invoke('update-caregiver-role', {
+      body: { target_user_id: targetUserId, new_user_type: newUserType }
+    })
+
+    if (error) throw error
+    if (data?.error) throw new Error(data.error)
   },
 
   // Get all caregivers for the user's account

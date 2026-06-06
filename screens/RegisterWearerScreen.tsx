@@ -38,6 +38,14 @@ export default function RegisterWearerScreen({ navigation }: RegisterWearerScree
   const [caregivers, setCaregivers] = useState<CaregiverOption[]>([])
   const [selectedCaregiverIds, setSelectedCaregiverIds] = useState<Set<string>>(new Set())
 
+  const isAdmin = userProfile?.user_type === 'caregiver_admin'
+
+  useEffect(() => {
+    if (userProfile && !isAdmin) {
+      navigation.navigate('Home')
+    }
+  }, [userProfile, isAdmin, navigation])
+
   useEffect(() => {
     loadCaregivers()
   }, [])

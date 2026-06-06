@@ -24,6 +24,7 @@ export default function InviteCaregiverScreen({ navigation }: InviteCaregiverScr
   const [email, setEmail] = useState('')
   const [wearers, setWearers] = useState<Wearer[]>([])
   const [selectedWearerIds, setSelectedWearerIds] = useState<Set<string>>(new Set())
+  const [inviteAsAdmin, setInviteAsAdmin] = useState(false)
 
   useEffect(() => {
     loadWearers()
@@ -80,18 +81,20 @@ export default function InviteCaregiverScreen({ navigation }: InviteCaregiverScr
       await userService.inviteCaregiver(
         email,
         userProfile.safeloop_account_id,
-        Array.from(selectedWearerIds)
+        Array.from(selectedWearerIds),
+        inviteAsAdmin ? 'caregiver_admin' : 'caregiver'
       )
 
       Alert.alert(
         'Invitation Sent!',
-        `An invitation has been sent to ${email}. When they create their account, they'll be automatically assigned to the selected wearer${selectedWearerIds.size > 1 ? 's' : ''}.`,
+        `An invitation has been sent to ${email}. When they create their account, they'll be automatically assigned to the selected wearer${selectedWearerIds.size > 1 ? 's' : ''}${inviteAsAdmin ? ' and given account admin access' : ''}.`,
         [
           {
             text: 'Send Another',
             onPress: () => {
               setEmail('')
               setSelectedWearerIds(new Set())
+              setInviteAsAdmin(false)
             }
           },
           {
@@ -179,6 +182,27 @@ export default function InviteCaregiverScreen({ navigation }: InviteCaregiverScr
               )
             })
           )}
+        </View>
+
+        {/* Admin role */}
+        <View style={styles.inputGroup}>
+          <TouchableOpacity
+            style={[styles.adminRow, inviteAsAdmin && styles.adminRowSelected]}
+            onPress={() => setInviteAsAdmin(prev => !prev)}
+            disabled={loading}
+          >
+            <View style={[styles.checkbox, inviteAsAdmin && styles.checkboxSelected]}>
+              {inviteAsAdmin && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <View style={styles.wearerInfo}>
+              <Text style={[styles.wearerName, inviteAsAdmin && styles.wearerNameSelected]}>
+                Invite as account admin
+              </Text>
+              <Text style={styles.wearerDob}>
+                Admins can register wearers, invite caregivers, and change account settings.
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.infoBox}>
@@ -293,6 +317,19 @@ const styles = StyleSheet.create({
   wearerRowSelected: {
     borderColor: '#2196F3',
     backgroundColor: '#e3f2fd',
+  },
+  adminRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+  },
+  adminRowSelected: {
+    borderColor: '#ff9800',
+    backgroundColor: '#fff8e1',
   },
   checkbox: {
     width: 22,

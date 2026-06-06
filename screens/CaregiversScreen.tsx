@@ -103,6 +103,37 @@ export default function CaregiversScreen({ navigation }: CaregiversScreenProps) 
     )
   }
 
+  const handleToggleAdminRole = (caregiver: CaregiverUser) => {
+    if (!isAdmin) {
+      Alert.alert('Error', 'Only account admins can change roles.')
+      return
+    }
+
+    const isCurrentlyAdmin = caregiver.user_type === 'caregiver_admin'
+    const nextType: 'caregiver' | 'caregiver_admin' = isCurrentlyAdmin ? 'caregiver' : 'caregiver_admin'
+    const title = isCurrentlyAdmin ? 'Remove Admin' : 'Make Admin'
+    const message = isCurrentlyAdmin
+      ? `Remove account admin access from ${caregiver.display_name || caregiver.email}? They will still be a caregiver.`
+      : `Give ${caregiver.display_name || caregiver.email} account admin access? They will be able to register wearers, invite caregivers, and change account settings.`
+
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: isCurrentlyAdmin ? 'Remove Admin' : 'Make Admin',
+        style: isCurrentlyAdmin ? 'destructive' : 'default',
+        onPress: async () => {
+          try {
+            await userService.updateCaregiverRole(caregiver.id, nextType)
+            await loadCaregivers()
+          } catch (error: any) {
+            console.error('Error updating caregiver role:', error)
+            Alert.alert('Error', error.message || 'Failed to update role.')
+          }
+        }
+      }
+    ])
+  }
+
   const handleCancelInvitation = async (invitation: PendingInvitation) => {
     if (!isAdmin) {
       Alert.alert('Error', 'Only account admins can cancel invitations.')
@@ -234,6 +265,26 @@ export default function CaregiversScreen({ navigation }: CaregiversScreenProps) 
                   <Text style={styles.statusText}>Active</Text>
                 </View>
               </View>
+              {isAdmin && caregiver.id !== userProfile?.id && (
+                <TouchableOpacity
+                  style={
+                    caregiver.user_type === 'caregiver_admin'
+                      ? styles.removeAdminButton
+                      : styles.makeAdminButton
+                  }
+                  onPress={() => handleToggleAdminRole(caregiver)}
+                >
+                  <Text
+                    style={
+                      caregiver.user_type === 'caregiver_admin'
+                        ? styles.removeAdminButtonText
+                        : styles.makeAdminButtonText
+                    }
+                  >
+                    {caregiver.user_type === 'caregiver_admin' ? 'Remove Admin' : 'Make Admin'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           ))
         )}
@@ -436,6 +487,34 @@ const styles = StyleSheet.create({
   statusText: {
     color: 'white',
     fontSize: 12,
+    fontWeight: '600',
+  },
+  makeAdminButton: {
+    marginTop: 12,
+    paddingVertical: 8,
+    backgroundColor: '#fff8e1',
+    borderRadius: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ff9800',
+  },
+  makeAdminButtonText: {
+    color: '#e65100',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  removeAdminButton: {
+    marginTop: 12,
+    paddingVertical: 8,
+    backgroundColor: 'white',
+    borderRadius: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#f44336',
+  },
+  removeAdminButtonText: {
+    color: '#f44336',
+    fontSize: 14,
     fontWeight: '600',
   },
   invitationCard: {
