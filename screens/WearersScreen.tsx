@@ -100,21 +100,28 @@ export default function WearersScreen({ navigation }: WearersScreenProps) {
   const getDeviceStatus = (deviceArray?: Wearer['device']) => {
     // Handle the fact that device comes as an array from Supabase join
     const device = deviceArray && deviceArray.length > 0 ? deviceArray[0] : undefined
-    
+
     if (!device) return { text: 'No Device', color: '#999' }
-    
+
     // If device is not verified, it's pending verification from the watch
     if (!device.is_verified) return { text: 'Pending Verification', color: '#ff9800' }
-    
+
     // Device is verified, check connectivity status
     if (device.last_seen) {
       const lastSeen = new Date(device.last_seen)
       const hoursSince = (Date.now() - lastSeen.getTime()) / (1000 * 60 * 60)
-      if (hoursSince < 1) return { text: 'Online', color: '#4CAF50' }
+      const recentlySeen = hoursSince < 1
+      // Driving is only meaningful while the heartbeat is still fresh — a
+      // stale "driving" state is really just Offline, and we don't want to
+      // hide that from the caregiver.
+      if (recentlySeen && device.monitoring_state === 'driving') {
+        return { text: '🚗 Driving', color: '#0099ff' }
+      }
+      if (recentlySeen) return { text: 'Online', color: '#4CAF50' }
       if (hoursSince < 24) return { text: 'Recent', color: '#2196F3' }
       return { text: 'Offline', color: '#f44336' }
     }
-    
+
     // Device is verified but hasn't checked in yet
     return { text: 'Verified', color: '#4CAF50' }
   }
