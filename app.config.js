@@ -9,7 +9,7 @@ const config = {
   scheme: "safeloop-care",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
-  newArchEnabled: false,
+  newArchEnabled: true,
   splash: {
     image: "./assets/splash-icon.png",
     resizeMode: "contain",
@@ -18,8 +18,10 @@ const config = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.safeloop.SafeLoopCare",
-    buildNumber: "3",
-    appleTeamId: "488Z8Y695B"
+    appleTeamId: "488Z8Y695B",
+    infoPlist: {
+      CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+    }
   },
   android: {
     adaptiveIcon: {
@@ -59,7 +61,8 @@ const config = {
     [
       "react-native-maps",
       {
-        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY
+        iosGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+        androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY
       }
     ]
   ],
