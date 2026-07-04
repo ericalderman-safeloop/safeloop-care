@@ -251,9 +251,7 @@ const isResolvingRef = useRef(false)
       return
     }
 
-    const lat = currentLocation ? currentLocation.latitude : helpRequest.location_latitude
-    const lng = currentLocation ? currentLocation.longitude : helpRequest.location_longitude
-    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+    const url = `https://www.google.com/maps/search/?api=1&query=${helpRequest.location_latitude},${helpRequest.location_longitude}`
     Linking.openURL(url)
   }
 

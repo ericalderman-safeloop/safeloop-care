@@ -366,8 +366,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
     backgroundColor: '#2196F3',
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   backButton: {
     marginRight: 15,
