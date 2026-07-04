@@ -1,0 +1,76 @@
+diff --git a/node_modules/react-native-maps/ios/AirGoogleMaps/RNMapsGoogleMapView.mm b/node_modules/react-native-maps/ios/AirGoogleMaps/RNMapsGoogleMapView.mm
+index eed1b59..4dd24f9 100644
+--- a/node_modules/react-native-maps/ios/AirGoogleMaps/RNMapsGoogleMapView.mm
++++ b/node_modules/react-native-maps/ios/AirGoogleMaps/RNMapsGoogleMapView.mm
+@@ -6,6 +6,7 @@
+ //  Copyright © 2024 react-native-maps. All rights reserved.
+ //
+ #ifdef HAVE_GOOGLE_MAPS
++#ifdef RCT_NEW_ARCH_ENABLED
+ 
+ #import "RNMapsGoogleMapView.h"
+ #import "RNMapsGooglePolygonView.h"
+@@ -675,4 +676,5 @@ Class<RCTComponentViewProtocol> RNMapsGoogleMapViewCls(void)
+   return RNMapsGoogleMapView.class;
+ }
+ 
+-#endif
++#endif // RCT_NEW_ARCH_ENABLED
++#endif // HAVE_GOOGLE_MAPS
+diff --git a/node_modules/react-native-maps/ios/AirGoogleMaps/RNMapsGooglePolygonView.mm b/node_modules/react-native-maps/ios/AirGoogleMaps/RNMapsGooglePolygonView.mm
+index 563c025..bfdc4d3 100644
+--- a/node_modules/react-native-maps/ios/AirGoogleMaps/RNMapsGooglePolygonView.mm
++++ b/node_modules/react-native-maps/ios/AirGoogleMaps/RNMapsGooglePolygonView.mm
+@@ -6,6 +6,7 @@
+ //  Copyright © 2024 react-native-maps. All rights reserved.
+ //
+ #ifdef HAVE_GOOGLE_MAPS
++#ifdef RCT_NEW_ARCH_ENABLED
+ 
+ #import "RNMapsGooglePolygonView.h"
+ #import "AIRGMSPolygon.h"
+@@ -223,4 +224,5 @@ Class<RCTComponentViewProtocol> RNMapsGooglePolygonCls(void)
+     return RNMapsGooglePolygonView.class;
+ }
+ 
+-#endif
++#endif // RCT_NEW_ARCH_ENABLED
++#endif // HAVE_GOOGLE_MAPS
+diff --git a/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm b/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm
+index 3346f15..b424bf9 100644
+--- a/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm
++++ b/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm
+@@ -6,6 +6,8 @@
+ //  Copyright © 2024 react-native-maps. All rights reserved.
+ //
+ 
++#ifdef RCT_NEW_ARCH_ENABLED
++
+ #import "RNMapsMapView.h"
+ #import "AIRMap.h"
+ #import "AIRMapMarker.h"
+@@ -628,3 +630,5 @@ Class<RCTComponentViewProtocol> RNMapsMapViewCls(void)
+ {
+     return RNMapsMapView.class;
+ }
++
++#endif // RCT_NEW_ARCH_ENABLED
+diff --git a/node_modules/react-native-maps/ios/AirMaps/RNMapsMarkerView.mm b/node_modules/react-native-maps/ios/AirMaps/RNMapsMarkerView.mm
+index be7e91d..d0f7a5c 100644
+--- a/node_modules/react-native-maps/ios/AirMaps/RNMapsMarkerView.mm
++++ b/node_modules/react-native-maps/ios/AirMaps/RNMapsMarkerView.mm
+@@ -6,6 +6,8 @@
+ //  Copyright © 2024 react-native-maps. All rights reserved.
+ //
+ 
++#ifdef RCT_NEW_ARCH_ENABLED
++
+ #import "RNMapsMarkerView.h"
+ #import "AIRMap.h"
+ #import "AIRMapMarker.h"
+@@ -438,3 +440,5 @@ Class<RCTComponentViewProtocol> RNMapsMarkerCls(void)
+ {
+     return RNMapsMarkerView.class;
+ }
++
++#endif // RCT_NEW_ARCH_ENABLED
